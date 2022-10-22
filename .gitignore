@@ -1,0 +1,4 @@
+bin/main/
+build/classes/
+.gradle/7.5.1/
+.gradle/buildOutputCleanup/

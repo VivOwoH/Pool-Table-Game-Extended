@@ -3,8 +3,8 @@
     "colour": "yellow",
     "friction": 0.9,
     "size": {
-      "x": 600,
-      "y": 400
+      "x": 700,
+      "y": 450
     },
   "pockets": [
       {
@@ -12,42 +12,42 @@
           "x": 50.0,
           "y": 25.0
         },
-        "radius": 50.0
+        "radius": 20.0
       },
       {
         "position": {
           "x": 650.0,
           "y": 25.0
         },
-        "radius": 50.0
+        "radius": 20.0
       },
       {
         "position": {
           "x": 50.0,
           "y": 425.0
         },
-        "radius": 50.0
+        "radius": 20.0
       },
       {
         "position": {
           "x": 650.0,
           "y": 425.0
         },
-        "radius": 50.0
+        "radius": 20.0
       },
       {
         "position": {
           "x": 350.0,
           "y": 25.0
         },
-        "radius": 50.0
+        "radius": 20.0
       },
       {
         "position": {
           "x": 350.0,
           "y": 425.0
         },
-        "radius": 50.0
+        "radius": 20.0
       }
       ]
   },
@@ -124,7 +124,7 @@
           "y": 0.0
         },
         "mass": 1.0
-      }
+      },
       {
         "colour": "blue",
         "position": {
@@ -136,7 +136,7 @@
           "y": 0.0
         },
         "mass": 1.0
-      }
+      },
       {
         "colour": "green",
         "position": {
@@ -148,7 +148,7 @@
           "y": 0.0
         },
         "mass": 1.0
-      }
+      },
       {
         "colour": "red",
         "position": {
@@ -172,7 +172,7 @@
           "y": 0.0
         },
         "mass": 1.0
-      },
+      }
     ]
   }
 }

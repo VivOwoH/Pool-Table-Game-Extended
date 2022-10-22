@@ -33,6 +33,10 @@ public class App extends Application {
         Reader tableReader = tableFactory.buildReader();
         tableReader.parse(configPath, gameManager);
 
+        ReaderFactory pocketFactory = new PocketReaderFactory();
+        Reader pocketReader = pocketFactory.buildReader();
+        pocketReader.parse(configPath, gameManager);
+
         ReaderFactory ballFactory = new BallReaderFactory();
         Reader ballReader = ballFactory.buildReader();
         ballReader.parse(configPath, gameManager);
@@ -57,7 +61,7 @@ public class App extends Application {
         if (args.size() > 0) {
             configPath = args.get(0);
         } else {
-            configPath = "src/main/resources/config.json";
+            configPath = "src/main/resources/config_normal.json";
         }
         return configPath;
     }
