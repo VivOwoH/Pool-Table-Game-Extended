@@ -3,8 +3,8 @@
     "colour": "yellow",
     "friction": 0.9,
     "size": {
-      "x": 700,
-      "y": 450
+      "x": 600,
+      "y": 400
     },
   "pockets": [
       {

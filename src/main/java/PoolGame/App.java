@@ -29,6 +29,19 @@ public class App extends Application {
         List<String> args = getParameters().getRaw();
         String configPath = checkConfig(args);
 
+        initializeAssets(configPath, gameManager);
+
+        gameManager.buildManager();
+
+        // START GAME MANAGER
+        gameManager.run();
+        primaryStage.setTitle("Pool");
+        primaryStage.setScene(gameManager.getScene());
+        primaryStage.show();
+        gameManager.run();
+    }
+
+    public static void initializeAssets(String configPath, GameManager gameManager) {
         ReaderFactory tableFactory = new TableReaderFactory();
         Reader tableReader = tableFactory.buildReader();
         tableReader.parse(configPath, gameManager);
@@ -40,14 +53,6 @@ public class App extends Application {
         ReaderFactory ballFactory = new BallReaderFactory();
         Reader ballReader = ballFactory.buildReader();
         ballReader.parse(configPath, gameManager);
-        gameManager.buildManager();
-
-        // START GAME MANAGER
-        gameManager.run();
-        primaryStage.setTitle("Pool");
-        primaryStage.setScene(gameManager.getScene());
-        primaryStage.show();
-        gameManager.run();
     }
 
     /**
@@ -61,7 +66,7 @@ public class App extends Application {
         if (args.size() > 0) {
             configPath = args.get(0);
         } else {
-            configPath = "src/main/resources/config_normal.json";
+            configPath = Config.getEasyConfig();
         }
         return configPath;
     }

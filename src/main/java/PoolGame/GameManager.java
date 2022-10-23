@@ -1,6 +1,11 @@
 package PoolGame;
 
 import PoolGame.objects.*;
+import PoolGame.state.Difficulty;
+import PoolGame.state.Easy;
+import PoolGame.state.Hard;
+import PoolGame.state.Normal;
+
 import java.util.ArrayList;
 
 import javafx.geometry.Point2D;
@@ -14,6 +19,9 @@ import javafx.scene.text.Font;
 import javafx.scene.paint.Paint;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 
 import javafx.util.Duration;
@@ -30,6 +38,7 @@ public class GameManager {
     private boolean cueActive = false;
     private boolean winFlag = false;
     private int score = 0;
+    private Difficulty difficulty;
 
     private final double TABLEBUFFER = Config.getTableBuffer();
     private final double TABLEEDGE = Config.getTableEdge();
@@ -54,8 +63,11 @@ public class GameManager {
      */
     public void buildManager() {
         Pane pane = new Pane();
-        setClickEvents(pane);
         this.scene = new Scene(pane, table.getxLength() + TABLEBUFFER * 2, table.getyLength() + TABLEBUFFER * 2);
+        
+        setClickEvents(pane);
+        cfgKeyInput(pane);
+
         Canvas canvas = new Canvas(table.getxLength() + TABLEBUFFER * 2, table.getyLength() + TABLEBUFFER * 2);
         gc = canvas.getGraphicsContext2D();
         pane.getChildren().add(canvas);
@@ -280,6 +292,11 @@ public class GameManager {
         }
     }
 
+    private void setDifficulty(Difficulty difficulty) {
+        this.difficulty = difficulty;
+        this.difficulty.update(this);
+    }
+
     /**
      * Sets the cue to be drawn on click, and manages cue actions
      * 
@@ -301,6 +318,42 @@ public class GameManager {
             cueSet = true;
             cueActive = false;
         });
+    }
+
+    private void cfgKeyInput(Pane pane) {
+        scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
+            if (key.getCode() == KeyCode.E) {
+                System.out.println("You pressed E");
+                this.setDifficulty(new Easy());
+            } else if (key.getCode() == KeyCode.N) {
+                System.out.println("You pressed N");
+                this.setDifficulty(new Normal());
+            } else if (key.getCode() == KeyCode.H) {
+                System.out.println("You pressed H");
+                this.setDifficulty(new Hard());
+            }
+        });
+
+        // // save & restore buttons
+        // Button save = new Button("save");
+        // save.setOnAction(e -> {
+        // stateTracker.addMemento(model.saveState());
+        // System.out.println("State saved");
+        // });
+
+        // Button restore = new Button("restore");
+        // restore.setTranslateX(50);
+        // restore.setOnAction(e -> {
+        // if (stateTracker.size() >= 1) {
+        // model.recoverState(stateTracker.getLastMemento());
+        // System.out.println("State restored");
+        // } else {
+        // System.out.println("No state available");
+        // }
+        // });
+
+        // pane.getChildren().add(save);
+        // pane.getChildren().add(restore);
     }
 
     /**
