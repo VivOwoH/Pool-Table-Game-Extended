@@ -1,10 +1,10 @@
 package PoolGame.strategy;
 
-public class BallStrategy extends PocketStrategy {
+public class BallStrategyOne extends PocketStrategy {
     /**
      * Creates a new ball strategy.
      */
-    public BallStrategy() {
+    public BallStrategyOne() {
         this.lives = 1;
     }
 

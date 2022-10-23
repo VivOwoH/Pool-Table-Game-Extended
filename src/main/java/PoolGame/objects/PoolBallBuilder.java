@@ -1,8 +1,12 @@
 package PoolGame.objects;
 
 import PoolGame.strategy.PocketStrategy;
-import PoolGame.strategy.BallStrategy;
-import PoolGame.strategy.BlueStrategy;
+
+import java.util.Arrays;
+
+import PoolGame.strategy.BallStrategyOne;
+import PoolGame.strategy.BallStrategyThree;
+import PoolGame.strategy.BallStrategyTwo;
 
 /** Builds pool balls. */
 public class PoolBallBuilder implements BallBuilder {
@@ -16,7 +20,10 @@ public class PoolBallBuilder implements BallBuilder {
 
     // Variable Parameters
     private boolean isCue = false;
-    public PocketStrategy strategy;
+    private PocketStrategy strategy;
+    private final String[] strategyOneColor = {"orange", "yellow", "red"};
+    private final String[] strategyTwoColor = {"green", "purple", "blue"};
+    private final String[] strategyThreeColor = {"black", "brown"};
 
     @Override
     public void setColour(String colour) {
@@ -56,11 +63,15 @@ public class PoolBallBuilder implements BallBuilder {
     public Ball build() {
         if (colour.equals("white")) {
             isCue = true;
-            strategy = new BallStrategy();
-        } else if (colour.equals("blue")) {
-            strategy = new BlueStrategy();
+            strategy = new BallStrategyOne();
+        } else if (Arrays.asList(strategyOneColor).contains(colour)) {
+            strategy = new BallStrategyOne();
+        } else if (Arrays.asList(strategyTwoColor).contains(colour)) {
+            strategy = new BallStrategyTwo();
+        } else if (Arrays.asList(strategyThreeColor).contains(colour)) {
+            strategy = new BallStrategyThree();
         } else {
-            strategy = new BallStrategy();
+            throw new IllegalArgumentException("Invalid colour, ball cannot be build.");
         }
 
         return new Ball(colour, xPosition, yPosition, xVelocity, yVelocity, mass, isCue, strategy);
