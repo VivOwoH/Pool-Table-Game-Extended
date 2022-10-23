@@ -39,9 +39,8 @@ public class GameManager implements ResetListener {
     private boolean cueSet = false;
     private boolean cueActive = false;
     private boolean winFlag = false;
-    private int score = 0;
-    private int time = 0;
-    
+
+    private GameState gameState = new GameState();
     private Difficulty difficulty;
     private List<ResetListener> resetListeners = new ArrayList<ResetListener>();
 
@@ -204,7 +203,7 @@ public class GameManager implements ResetListener {
      * Used Exercise 6 as reference.
      */
     public void tick() {
-        if (score == balls.size() - 1) {
+        if (gameState.getScore() == balls.size() - 1) {
             winFlag = true;
         }
 
@@ -225,16 +224,16 @@ public class GameManager implements ResetListener {
                         publishResetEvent();
                     } else {
                         if (ball.remove()) {
-                            score++;
+                            ball.publishBallInPocketEvent();
                         } else {
                             // Check if when ball is removed, any other balls are present in its space. (If
-                            // another ball is present, blue ball is removed)
+                            // another ball is present, this ball is force-removed)
                             for (Ball otherBall : balls) {
                                 double deltaX = ball.getxPos() - otherBall.getxPos();
                                 double deltaY = ball.getyPos() - otherBall.getyPos();
                                 double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
                                 if (otherBall != ball && otherBall.isActive() && distance < 10) {
-                                    ball.remove();
+                                    ball.forceRemove(); // does not update score
                                 }
                             }
                         }
@@ -287,10 +286,12 @@ public class GameManager implements ResetListener {
         resetListeners.clear(); // in case of re-initialized assets
 
         // gameManager itself listens to reset event
-        resetListeners.add(this); 
+        addResetListener(this); 
         // ball listens to reset event
-        for (Ball ball : balls)
-            resetListeners.add(ball); 
+        for (Ball ball : balls) {
+            addResetListener(ball);
+            ball.addBallInPocketListener(gameState);
+        }      
     }
 
     public void addResetListener(ResetListener listener) {
@@ -307,8 +308,8 @@ public class GameManager implements ResetListener {
      * Resets time and score.
      */
     public void reset() {
-        this.score = 0;
-        this.time = 0;
+        gameState.setScore(0);
+        gameState.setTime(0);
     }
 
     /**

@@ -1,6 +1,10 @@
 package PoolGame.objects;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import PoolGame.Config;
+import PoolGame.observer.BallInPocketListener;
 import PoolGame.observer.ResetListener;
 import PoolGame.strategy.PocketStrategy;
 import javafx.scene.paint.Paint;
@@ -17,14 +21,16 @@ public class Ball implements ResetListener {
     private double yVelocity;
     private double mass;
     private double radius;
+    private int score;
     private boolean isCue;
     private boolean isActive;
     private PocketStrategy strategy;
+    private List<BallInPocketListener> ballInPocketlisteners = new ArrayList<BallInPocketListener>(); 
 
     private final double MAXVEL = 20;
 
     public Ball(String colour, double xPosition, double yPosition, double xVelocity, double yVelocity, double mass,
-            boolean isCue, PocketStrategy strategy) {
+            int score, boolean isCue, PocketStrategy strategy) {
         this.colour = Paint.valueOf(colour);
         this.xPosition = xPosition;
         this.yPosition = yPosition;
@@ -34,6 +40,7 @@ public class Ball implements ResetListener {
         this.yVelocity = yVelocity;
         this.mass = mass;
         this.radius = 10;
+        this.score = score;
         this.isCue = isCue;
         this.isActive = true;
         this.strategy = strategy;
@@ -81,6 +88,36 @@ public class Ball implements ResetListener {
         }
     }
 
+    /**
+     * Force remove the ball no matter the lives.
+     */
+    public void forceRemove() {
+        strategy.forceRemove();
+        isActive = false;
+    }
+
+    /**
+     * Add a class that listens to this ball falling into a pocket.
+     * 
+     * @param listener
+     */
+    public void addBallInPocketListener(BallInPocketListener listener) {
+        this.ballInPocketlisteners.add(listener);
+    }
+
+    /**
+     * Notify all listeners upon the event of this ball falling into a pocket. 
+     */
+    public void publishBallInPocketEvent() {
+        for (BallInPocketListener listener : this.ballInPocketlisteners) {
+            listener.onBallInPocketEvent(this);
+        }
+    }
+    
+
+    // -----------------------------------
+    // --------- GETTER/SETTER -----------
+    // -----------------------------------
     /**
      * Sets x-axis velocity of ball.
      * 
@@ -208,6 +245,15 @@ public class Ball implements ResetListener {
      */
     public double getyVel() {
         return yVelocity;
+    }
+
+    /**
+     * Getter method for score of ball.
+     * 
+     * @return score.
+     */
+    public int getScore() {
+        return this.score;
     }
 
     /**

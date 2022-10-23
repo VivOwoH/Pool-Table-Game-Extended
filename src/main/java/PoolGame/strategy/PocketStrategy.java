@@ -19,6 +19,10 @@ public abstract class PocketStrategy {
         return false;
     }
 
+    public void forceRemove() {
+        this.lives = 0;
+    }
+
     /**
      * Resets the ball to its original state.
      */

@@ -3,6 +3,7 @@ package PoolGame.objects;
 import PoolGame.strategy.PocketStrategy;
 
 import java.util.Arrays;
+import java.util.HashMap;
 
 import PoolGame.strategy.BallStrategyOne;
 import PoolGame.strategy.BallStrategyThree;
@@ -17,13 +18,28 @@ public class PoolBallBuilder implements BallBuilder {
     private double xVelocity;
     private double yVelocity;
     private double mass;
+    private int score;
 
     // Variable Parameters
     private boolean isCue = false;
     private PocketStrategy strategy;
-    private final String[] strategyOneColor = {"orange", "yellow", "red"};
-    private final String[] strategyTwoColor = {"green", "purple", "blue"};
-    private final String[] strategyThreeColor = {"black", "brown"};
+
+    private final String[] strategyOneColor = { "orange", "yellow", "red" };
+    private final String[] strategyTwoColor = { "green", "purple", "blue" };
+    private final String[] strategyThreeColor = { "black", "brown" };
+    private final HashMap<String, Integer> scoreMap = new HashMap<>() {
+        {
+            put("white", 0);
+            put("red", 1);
+            put("yellow", 2);
+            put("green", 3);
+            put("brown", 4);
+            put("blue", 5);
+            put("purple", 6);
+            put("black", 7);
+            put("orange", 8);
+        }
+    };
 
     @Override
     public void setColour(String colour) {
@@ -74,6 +90,8 @@ public class PoolBallBuilder implements BallBuilder {
             throw new IllegalArgumentException("Invalid colour, ball cannot be build.");
         }
 
-        return new Ball(colour, xPosition, yPosition, xVelocity, yVelocity, mass, isCue, strategy);
+        score = scoreMap.get(colour);
+
+        return new Ball(colour, xPosition, yPosition, xVelocity, yVelocity, mass, score, isCue, strategy);
     }
 }
