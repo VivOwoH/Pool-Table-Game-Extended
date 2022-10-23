@@ -1,12 +1,14 @@
 package PoolGame;
 
 import PoolGame.objects.*;
+import PoolGame.observer.ResetListener;
 import PoolGame.state.Difficulty;
 import PoolGame.state.Easy;
 import PoolGame.state.Hard;
 import PoolGame.state.Normal;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import javafx.geometry.Point2D;
 
@@ -30,7 +32,7 @@ import javafx.util.Pair;
 /**
  * Controls the game interface; drawing objects, handling logic and collisions.
  */
-public class GameManager {
+public class GameManager implements ResetListener {
     private Table table;
     private ArrayList<Ball> balls = new ArrayList<Ball>();
     private Line cue;
@@ -38,7 +40,10 @@ public class GameManager {
     private boolean cueActive = false;
     private boolean winFlag = false;
     private int score = 0;
+    private int time = 0;
+    
     private Difficulty difficulty;
+    private List<ResetListener> resetListeners = new ArrayList<ResetListener>();
 
     private final double TABLEBUFFER = Config.getTableBuffer();
     private final double TABLEEDGE = Config.getTableEdge();
@@ -46,6 +51,10 @@ public class GameManager {
 
     private Scene scene;
     private GraphicsContext gc;
+
+    public GameManager() {
+        initializeListeners();
+    }
 
     /**
      * Initialises timeline and cycle count.
@@ -126,176 +135,6 @@ public class GameManager {
 
     }
 
-    /**
-     * Updates positions of all balls, handles logic related to collisions.
-     * Used Exercise 6 as reference.
-     */
-    public void tick() {
-        if (score == balls.size() - 1) {
-            winFlag = true;
-        }
-
-        for (Ball ball : balls) {
-            ball.tick();
-
-            if (ball.isCue() && cueSet) {
-                hitBall(ball);
-            }
-
-            double width = table.getxLength();
-            double height = table.getyLength();
-
-            // Check if ball landed in pocket
-            for (Pocket pocket : table.getPockets()) {
-                if (pocket.isInPocket(ball)) {
-                    if (ball.isCue()) {
-                        this.reset();
-                    } else {
-                        if (ball.remove()) {
-                            score++;
-                        } else {
-                            // Check if when ball is removed, any other balls are present in its space. (If
-                            // another ball is present, blue ball is removed)
-                            for (Ball otherBall : balls) {
-                                double deltaX = ball.getxPos() - otherBall.getxPos();
-                                double deltaY = ball.getyPos() - otherBall.getyPos();
-                                double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                                if (otherBall != ball && otherBall.isActive() && distance < 10) {
-                                    ball.remove();
-                                }
-                            }
-                        }
-                    }
-                    break;
-                }
-            }
-
-            // Handle the edges (balls don't get a choice here)
-            if (ball.getxPos() + ball.getRadius() > width + TABLEBUFFER) {
-                ball.setxPos(width - ball.getRadius());
-                ball.setxVel(ball.getxVel() * -1);
-            }
-            if (ball.getxPos() - ball.getRadius() < TABLEBUFFER) {
-                ball.setxPos(ball.getRadius());
-                ball.setxVel(ball.getxVel() * -1);
-            }
-            if (ball.getyPos() + ball.getRadius() > height + TABLEBUFFER) {
-                ball.setyPos(height - ball.getRadius());
-                ball.setyVel(ball.getyVel() * -1);
-            }
-            if (ball.getyPos() - ball.getRadius() < TABLEBUFFER) {
-                ball.setyPos(ball.getRadius());
-                ball.setyVel(ball.getyVel() * -1);
-            }
-
-            // Apply table friction
-            double friction = table.getFriction();
-            ball.setxVel(ball.getxVel() * friction);
-            ball.setyVel(ball.getyVel() * friction);
-
-            // Check ball collisions
-            for (Ball ballB : balls) {
-                if (checkCollision(ball, ballB)) {
-                    Point2D ballPos = new Point2D(ball.getxPos(), ball.getyPos());
-                    Point2D ballBPos = new Point2D(ballB.getxPos(), ballB.getyPos());
-                    Point2D ballVel = new Point2D(ball.getxVel(), ball.getyVel());
-                    Point2D ballBVel = new Point2D(ballB.getxVel(), ballB.getyVel());
-                    Pair<Point2D, Point2D> changes = calculateCollision(ballPos, ballVel, ball.getMass(), ballBPos,
-                            ballBVel, ballB.getMass(), false);
-                    calculateChanges(changes, ball, ballB);
-                }
-            }
-        }
-    }
-
-    /**
-     * Resets the game.
-     */
-    public void reset() {
-        for (Ball ball : balls) {
-            ball.reset();
-        }
-
-        this.score = 0;
-    }
-
-    /**
-     * @return scene.
-     */
-    public Scene getScene() {
-        return this.scene;
-    }
-
-    /**
-     * Sets the table of the game.
-     * 
-     * @param table
-     */
-    public void setTable(Table table) {
-        this.table = table;
-    }
-
-    /**
-     * @return table
-     */
-    public Table getTable() {
-        return this.table;
-    }
-
-    /**
-     * Sets the balls of the game.
-     * 
-     * @param balls
-     */
-    public void setBalls(ArrayList<Ball> balls) {
-        this.balls = balls;
-    }
-
-    /**
-     * Hits the ball with the cue, distance of the cue indicates the strength of the
-     * strike.
-     * 
-     * @param ball
-     */
-    private void hitBall(Ball ball) {
-        double deltaX = ball.getxPos() - cue.getStartX();
-        double deltaY = ball.getyPos() - cue.getStartY();
-        double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-        // Check that start of cue is within cue ball
-        if (distance < ball.getRadius()) {
-            // Collide ball with cue
-            double hitxVel = (cue.getStartX() - cue.getEndX()) * FORCEFACTOR;
-            double hityVel = (cue.getStartY() - cue.getEndY()) * FORCEFACTOR;
-
-            ball.setxVel(hitxVel);
-            ball.setyVel(hityVel);
-        }
-
-        cueSet = false;
-
-    }
-
-    /**
-     * Changes values of balls based on collision (if ball is null ignore it)
-     * 
-     * @param changes
-     * @param ballA
-     * @param ballB
-     */
-    private void calculateChanges(Pair<Point2D, Point2D> changes, Ball ballA, Ball ballB) {
-        ballA.setxVel(changes.getKey().getX());
-        ballA.setyVel(changes.getKey().getY());
-        if (ballB != null) {
-            ballB.setxVel(changes.getValue().getX());
-            ballB.setyVel(changes.getValue().getY());
-        }
-    }
-
-    private void setDifficulty(Difficulty difficulty) {
-        this.difficulty = difficulty;
-        this.difficulty.update(this);
-    }
 
     /**
      * Sets the cue to be drawn on click, and manages cue actions
@@ -354,6 +193,175 @@ public class GameManager {
 
         // pane.getChildren().add(save);
         // pane.getChildren().add(restore);
+    }
+
+    // ------------------------------------------------------
+    // ------------------ Game logic ------------------------
+    // ------------------------------------------------------
+
+    /**
+     * Updates positions of all balls, handles logic related to collisions.
+     * Used Exercise 6 as reference.
+     */
+    public void tick() {
+        if (score == balls.size() - 1) {
+            winFlag = true;
+        }
+
+        for (Ball ball : balls) {
+            ball.tick();
+
+            if (ball.isCue() && cueSet) {
+                hitBall(ball);
+            }
+
+            double width = table.getxLength();
+            double height = table.getyLength();
+
+            // Check if ball landed in pocket
+            for (Pocket pocket : table.getPockets()) {
+                if (pocket.isInPocket(ball)) {
+                    if (ball.isCue()) {
+                        publishResetEvent();
+                    } else {
+                        if (ball.remove()) {
+                            score++;
+                        } else {
+                            // Check if when ball is removed, any other balls are present in its space. (If
+                            // another ball is present, blue ball is removed)
+                            for (Ball otherBall : balls) {
+                                double deltaX = ball.getxPos() - otherBall.getxPos();
+                                double deltaY = ball.getyPos() - otherBall.getyPos();
+                                double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                                if (otherBall != ball && otherBall.isActive() && distance < 10) {
+                                    ball.remove();
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+
+            // Handle the edges (balls don't get a choice here)
+            if (ball.getxPos() + ball.getRadius() > width + TABLEBUFFER) {
+                ball.setxPos(width - ball.getRadius());
+                ball.setxVel(ball.getxVel() * -1);
+            }
+            if (ball.getxPos() - ball.getRadius() < TABLEBUFFER) {
+                ball.setxPos(ball.getRadius());
+                ball.setxVel(ball.getxVel() * -1);
+            }
+            if (ball.getyPos() + ball.getRadius() > height + TABLEBUFFER) {
+                ball.setyPos(height - ball.getRadius());
+                ball.setyVel(ball.getyVel() * -1);
+            }
+            if (ball.getyPos() - ball.getRadius() < TABLEBUFFER) {
+                ball.setyPos(ball.getRadius());
+                ball.setyVel(ball.getyVel() * -1);
+            }
+
+            // Apply table friction
+            double friction = table.getFriction();
+            ball.setxVel(ball.getxVel() * friction);
+            ball.setyVel(ball.getyVel() * friction);
+
+            // Check ball collisions
+            for (Ball ballB : balls) {
+                if (checkCollision(ball, ballB)) {
+                    Point2D ballPos = new Point2D(ball.getxPos(), ball.getyPos());
+                    Point2D ballBPos = new Point2D(ballB.getxPos(), ballB.getyPos());
+                    Point2D ballVel = new Point2D(ball.getxVel(), ball.getyVel());
+                    Point2D ballBVel = new Point2D(ballB.getxVel(), ballB.getyVel());
+                    Pair<Point2D, Point2D> changes = calculateCollision(ballPos, ballVel, ball.getMass(), ballBPos,
+                            ballBVel, ballB.getMass(), false);
+                    calculateChanges(changes, ball, ballB);
+                }
+            }
+        }
+    }
+    
+    // -------------- Reset event --------------------
+
+    public void initializeListeners() {
+        resetListeners.clear(); // in case of re-initialized assets
+
+        // gameManager itself listens to reset event
+        resetListeners.add(this); 
+        // ball listens to reset event
+        for (Ball ball : balls)
+            resetListeners.add(ball); 
+    }
+
+    public void addResetListener(ResetListener listener) {
+        this.resetListeners.add(listener);
+    }
+
+    public void publishResetEvent() {
+        for (ResetListener listener : this.resetListeners) {
+            listener.reset();
+        }
+    }
+
+    /**
+     * Resets time and score.
+     */
+    public void reset() {
+        this.score = 0;
+        this.time = 0;
+    }
+
+    /**
+     * Sets the game difficulty. Also resets game state.
+     * 
+     * @param difficulty difficulty state.
+     */
+    private void setDifficulty(Difficulty difficulty) {
+        this.difficulty = difficulty;
+        this.publishResetEvent();
+        this.difficulty.update(this);
+    }
+
+    // -------------- Ball logics --------------------
+    /**
+     * Hits the ball with the cue, distance of the cue indicates the strength of the
+     * strike.
+     * 
+     * @param ball
+     */
+    private void hitBall(Ball ball) {
+        double deltaX = ball.getxPos() - cue.getStartX();
+        double deltaY = ball.getyPos() - cue.getStartY();
+        double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        // Check that start of cue is within cue ball
+        if (distance < ball.getRadius()) {
+            // Collide ball with cue
+            double hitxVel = (cue.getStartX() - cue.getEndX()) * FORCEFACTOR;
+            double hityVel = (cue.getStartY() - cue.getEndY()) * FORCEFACTOR;
+
+            ball.setxVel(hitxVel);
+            ball.setyVel(hityVel);
+        }
+
+        cueSet = false;
+
+    }
+
+    /**
+     * Changes values of balls based on collision (if ball is null ignore it)
+     * 
+     * @param changes
+     * @param ballA
+     * @param ballB
+     */
+    private void calculateChanges(Pair<Point2D, Point2D> changes, Ball ballA, Ball ballB) {
+        ballA.setxVel(changes.getKey().getX());
+        ballA.setyVel(changes.getKey().getY());
+        if (ballB != null) {
+            ballB.setxVel(changes.getValue().getX());
+            ballB.setyVel(changes.getValue().getY());
+        }
     }
 
     /**
@@ -426,5 +434,41 @@ public class GameManager {
         Point2D velBPrime = velocityB.add(collisionVector.multiply(optimizedP).multiply(massA));
 
         return new Pair<>(velAPrime, velBPrime);
+    }
+
+    // ------------------------------------------------------
+    // ------------------ GETTER/SETTER ---------------------
+    // ------------------------------------------------------
+
+    /**
+     * @return scene.
+     */
+    public Scene getScene() {
+        return this.scene;
+    }
+
+    /**
+     * Sets the table of the game.
+     * 
+     * @param table
+     */
+    public void setTable(Table table) {
+        this.table = table;
+    }
+
+    /**
+     * @return table
+     */
+    public Table getTable() {
+        return this.table;
+    }
+
+    /**
+     * Sets the balls of the game.
+     * 
+     * @param balls
+     */
+    public void setBalls(ArrayList<Ball> balls) {
+        this.balls = balls;
     }
 }

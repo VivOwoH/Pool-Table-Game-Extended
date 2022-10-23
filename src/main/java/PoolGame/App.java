@@ -53,6 +53,8 @@ public class App extends Application {
         ReaderFactory ballFactory = new BallReaderFactory();
         Reader ballReader = ballFactory.buildReader();
         ballReader.parse(configPath, gameManager);
+
+        gameManager.initializeListeners();
     }
 
     /**

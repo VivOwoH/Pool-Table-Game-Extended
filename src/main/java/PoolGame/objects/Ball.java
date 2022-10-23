@@ -1,11 +1,12 @@
 package PoolGame.objects;
 
 import PoolGame.Config;
+import PoolGame.observer.ResetListener;
 import PoolGame.strategy.PocketStrategy;
 import javafx.scene.paint.Paint;
 
 /** Holds information for all ball-related objects. */
-public class Ball {
+public class Ball implements ResetListener {
 
     private Paint colour;
     private double xPosition;
