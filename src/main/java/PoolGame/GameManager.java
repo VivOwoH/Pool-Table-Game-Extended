@@ -1,12 +1,17 @@
 package PoolGame;
 
+import PoolGame.memento.BallState;
+import PoolGame.memento.GameState;
+import PoolGame.memento.StateTracker;
 import PoolGame.objects.*;
+import PoolGame.observer.ResetListener;
 import PoolGame.state.Difficulty;
 import PoolGame.state.Easy;
 import PoolGame.state.Hard;
 import PoolGame.state.Normal;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import javafx.geometry.Point2D;
 
@@ -16,11 +21,11 @@ import javafx.animation.Timeline;
 import javafx.scene.shape.Line;
 import javafx.scene.Scene;
 import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.scene.paint.Paint;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 
@@ -30,15 +35,21 @@ import javafx.util.Pair;
 /**
  * Controls the game interface; drawing objects, handling logic and collisions.
  */
-public class GameManager {
+public class GameManager implements ResetListener {
     private Table table;
     private ArrayList<Ball> balls = new ArrayList<Ball>();
     private Line cue;
     private boolean cueSet = false;
     private boolean cueActive = false;
     private boolean winFlag = false;
-    private int score = 0;
-    private Difficulty difficulty;
+
+    private Text score;
+    private Text time;
+
+    private GameState gameState = new GameState(0, 0, null);
+    private StateTracker stateTracker = new StateTracker();
+    private Difficulty difficulty = new Easy();
+    private List<ResetListener> resetListeners = new ArrayList<ResetListener>();
 
     private final double TABLEBUFFER = Config.getTableBuffer();
     private final double TABLEEDGE = Config.getTableEdge();
@@ -46,6 +57,10 @@ public class GameManager {
 
     private Scene scene;
     private GraphicsContext gc;
+
+    public GameManager() {
+        initializeListeners();
+    }
 
     /**
      * Initialises timeline and cycle count.
@@ -64,13 +79,16 @@ public class GameManager {
     public void buildManager() {
         Pane pane = new Pane();
         this.scene = new Scene(pane, table.getxLength() + TABLEBUFFER * 2, table.getyLength() + TABLEBUFFER * 2);
-        
+
         setClickEvents(pane);
         cfgKeyInput(pane);
 
         Canvas canvas = new Canvas(table.getxLength() + TABLEBUFFER * 2, table.getyLength() + TABLEBUFFER * 2);
         gc = canvas.getGraphicsContext2D();
         pane.getChildren().add(canvas);
+
+        cfgGameStateUI(pane);
+        cfgButtons(pane);
     }
 
     /**
@@ -127,11 +145,89 @@ public class GameManager {
     }
 
     /**
+     * Sets the cue to be drawn on click, and manages cue actions
+     * 
+     * @param pane
+     */
+    private void setClickEvents(Pane pane) {
+        pane.setOnMousePressed(event -> {
+            cue = new Line(event.getX(), event.getY(), event.getX(), event.getY());
+            cueSet = false;
+            cueActive = true;
+        });
+
+        pane.setOnMouseDragged(event -> {
+            cue.setEndX(event.getX());
+            cue.setEndY(event.getY());
+        });
+
+        pane.setOnMouseReleased(event -> {
+            cueSet = true;
+            cueActive = false;
+        });
+    }
+
+    private void cfgKeyInput(Pane pane) {
+        scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
+            this.onUserDifficultyChange(key.getCode().toString());
+        });
+    }
+
+    private void cfgGameStateUI(Pane pane) {
+        score = new Text(Integer.toString(this.gameState.getScore()));
+        time = new Text(Integer.toString(this.gameState.getTime()));
+        
+        score.setTranslateX(table.getxLength());
+        score.setTranslateY(TABLEBUFFER - 20);
+
+        time.setTranslateX(table.getxLength() - 50);
+        time.setTranslateY(TABLEBUFFER - 20);
+
+        pane.getChildren().add(score);
+        pane.getChildren().add(time);
+    }
+
+    private void cfgButtons(Pane pane) {
+        // save & restore buttons
+        Button save = new Button("save");
+        save.setTranslateX(TABLEBUFFER);
+        save.setTranslateY(TABLEBUFFER - 40);
+        save.setOnAction(e -> {
+            stateTracker.setLastState(this.saveState());
+            System.out.println("State saved");
+        });
+
+        Button restore = new Button("restore");
+        restore.setTranslateX(TABLEBUFFER + 60);
+        restore.setTranslateY(TABLEBUFFER - 40);
+        restore.setOnAction(e -> {
+            if (stateTracker.getLastState() == null) {
+                System.out.println("No state available");
+            } else {
+                this.restoreState(stateTracker.getLastState());
+                System.out.println("State restored");
+            }
+        });
+
+        pane.getChildren().add(save);
+        pane.getChildren().add(restore);
+    }
+
+    // ------------------------------------------------------
+    // ------------------ Game logic ------------------------
+    // ------------------------------------------------------
+
+    /**
      * Updates positions of all balls, handles logic related to collisions.
      * Used Exercise 6 as reference.
      */
     public void tick() {
-        if (score == balls.size() - 1) {
+
+        this.gameState.incTime();
+        time.setText(Integer.toString(this.gameState.getTime()));
+        score.setText(Integer.toString(this.gameState.getScore()));
+
+        if (gameState.getScore() == balls.size() - 1) {
             winFlag = true;
         }
 
@@ -149,19 +245,19 @@ public class GameManager {
             for (Pocket pocket : table.getPockets()) {
                 if (pocket.isInPocket(ball)) {
                     if (ball.isCue()) {
-                        this.reset();
+                        publishResetEvent();
                     } else {
                         if (ball.remove()) {
-                            score++;
+                            ball.publishBallInPocketEvent();
                         } else {
                             // Check if when ball is removed, any other balls are present in its space. (If
-                            // another ball is present, blue ball is removed)
+                            // another ball is present, this ball is force-removed)
                             for (Ball otherBall : balls) {
                                 double deltaX = ball.getxPos() - otherBall.getxPos();
                                 double deltaY = ball.getyPos() - otherBall.getyPos();
                                 double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
                                 if (otherBall != ball && otherBall.isActive() && distance < 10) {
-                                    ball.remove();
+                                    ball.forceRemove(); // does not update score
                                 }
                             }
                         }
@@ -208,49 +304,80 @@ public class GameManager {
         }
     }
 
+    // -------------- Reset event --------------------
+
+    public void initializeListeners() {
+        resetListeners.clear(); // in case of re-initialized assets
+
+        // gameManager itself listens to reset event
+        addResetListener(this);
+        // ball listens to reset event
+        for (Ball ball : balls) {
+            addResetListener(ball);
+            ball.addBallInPocketListener(gameState);
+        }
+    }
+
+    public void addResetListener(ResetListener listener) {
+        this.resetListeners.add(listener);
+    }
+
+    public void publishResetEvent() {
+        for (ResetListener listener : this.resetListeners) {
+            listener.reset();
+        }
+    }
+
     /**
-     * Resets the game.
+     * Resets time and score.
      */
     public void reset() {
-        for (Ball ball : balls) {
-            ball.reset();
+        gameState.setScore(0);
+        gameState.setTime(0);
+    }
+
+    // -------------- Swtich difficulty --------------------
+    /**
+     * Sets the game difficulty. Also resets game state.
+     * 
+     * @param difficulty difficulty state.
+     */
+    public void setDifficulty(Difficulty difficulty) {
+        this.difficulty = difficulty;
+        this.publishResetEvent();
+    }
+
+    /**
+     * Difficulty state changes when user press a button.
+     * 
+     * @param mode the difficulty the button corresponds to.
+     */
+    public void onUserDifficultyChange(String mode) {
+        this.difficulty.update(this, mode);
+    }
+
+    // -------------- Store/Restore game state --------------------
+    /**
+     * Store current game state, including time and score.
+     * 
+     * @return current game state.
+     */
+    public GameState saveState() {
+        List<BallState> states = new ArrayList<BallState>();
+        for (Ball ball : balls)
+            states.add(ball.getState());
+
+        return new GameState(this.gameState.getTime(), this.gameState.getScore(), states);
+    }
+
+    public void restoreState(GameState gameState) {
+        this.gameState = gameState;
+        for (int i = 0; i < this.balls.size(); i++) {
+            this.balls.get(i).setState(gameState.getBallStates().get(i));
         }
-
-        this.score = 0;
     }
 
-    /**
-     * @return scene.
-     */
-    public Scene getScene() {
-        return this.scene;
-    }
-
-    /**
-     * Sets the table of the game.
-     * 
-     * @param table
-     */
-    public void setTable(Table table) {
-        this.table = table;
-    }
-
-    /**
-     * @return table
-     */
-    public Table getTable() {
-        return this.table;
-    }
-
-    /**
-     * Sets the balls of the game.
-     * 
-     * @param balls
-     */
-    public void setBalls(ArrayList<Ball> balls) {
-        this.balls = balls;
-    }
-
+    // -------------- Ball logics --------------------
     /**
      * Hits the ball with the cue, distance of the cue indicates the strength of the
      * strike.
@@ -290,70 +417,6 @@ public class GameManager {
             ballB.setxVel(changes.getValue().getX());
             ballB.setyVel(changes.getValue().getY());
         }
-    }
-
-    private void setDifficulty(Difficulty difficulty) {
-        this.difficulty = difficulty;
-        this.difficulty.update(this);
-    }
-
-    /**
-     * Sets the cue to be drawn on click, and manages cue actions
-     * 
-     * @param pane
-     */
-    private void setClickEvents(Pane pane) {
-        pane.setOnMousePressed(event -> {
-            cue = new Line(event.getX(), event.getY(), event.getX(), event.getY());
-            cueSet = false;
-            cueActive = true;
-        });
-
-        pane.setOnMouseDragged(event -> {
-            cue.setEndX(event.getX());
-            cue.setEndY(event.getY());
-        });
-
-        pane.setOnMouseReleased(event -> {
-            cueSet = true;
-            cueActive = false;
-        });
-    }
-
-    private void cfgKeyInput(Pane pane) {
-        scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
-            if (key.getCode() == KeyCode.E) {
-                System.out.println("You pressed E");
-                this.setDifficulty(new Easy());
-            } else if (key.getCode() == KeyCode.N) {
-                System.out.println("You pressed N");
-                this.setDifficulty(new Normal());
-            } else if (key.getCode() == KeyCode.H) {
-                System.out.println("You pressed H");
-                this.setDifficulty(new Hard());
-            }
-        });
-
-        // // save & restore buttons
-        // Button save = new Button("save");
-        // save.setOnAction(e -> {
-        // stateTracker.addMemento(model.saveState());
-        // System.out.println("State saved");
-        // });
-
-        // Button restore = new Button("restore");
-        // restore.setTranslateX(50);
-        // restore.setOnAction(e -> {
-        // if (stateTracker.size() >= 1) {
-        // model.recoverState(stateTracker.getLastMemento());
-        // System.out.println("State restored");
-        // } else {
-        // System.out.println("No state available");
-        // }
-        // });
-
-        // pane.getChildren().add(save);
-        // pane.getChildren().add(restore);
     }
 
     /**
@@ -426,5 +489,41 @@ public class GameManager {
         Point2D velBPrime = velocityB.add(collisionVector.multiply(optimizedP).multiply(massA));
 
         return new Pair<>(velAPrime, velBPrime);
+    }
+
+    // ------------------------------------------------------
+    // ------------------ GETTER/SETTER ---------------------
+    // ------------------------------------------------------
+
+    /**
+     * @return scene.
+     */
+    public Scene getScene() {
+        return this.scene;
+    }
+
+    /**
+     * Sets the table of the game.
+     * 
+     * @param table
+     */
+    public void setTable(Table table) {
+        this.table = table;
+    }
+
+    /**
+     * @return table
+     */
+    public Table getTable() {
+        return this.table;
+    }
+
+    /**
+     * Sets the balls of the game.
+     * 
+     * @param balls
+     */
+    public void setBalls(ArrayList<Ball> balls) {
+        this.balls = balls;
     }
 }
