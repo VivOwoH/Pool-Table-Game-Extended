@@ -1,5 +1,8 @@
 package PoolGame;
 
+import PoolGame.memento.BallState;
+import PoolGame.memento.GameState;
+import PoolGame.memento.StateTracker;
 import PoolGame.objects.*;
 import PoolGame.observer.ResetListener;
 import PoolGame.state.Difficulty;
@@ -40,8 +43,9 @@ public class GameManager implements ResetListener {
     private boolean cueActive = false;
     private boolean winFlag = false;
 
-    private GameState gameState = new GameState();
-    private Difficulty difficulty;
+    private GameState gameState = new GameState(0, 0, null);
+    private StateTracker stateTracker = new StateTracker();
+    private Difficulty difficulty = new Easy();
     private List<ResetListener> resetListeners = new ArrayList<ResetListener>();
 
     private final double TABLEBUFFER = Config.getTableBuffer();
@@ -72,13 +76,15 @@ public class GameManager implements ResetListener {
     public void buildManager() {
         Pane pane = new Pane();
         this.scene = new Scene(pane, table.getxLength() + TABLEBUFFER * 2, table.getyLength() + TABLEBUFFER * 2);
-        
+
         setClickEvents(pane);
         cfgKeyInput(pane);
 
         Canvas canvas = new Canvas(table.getxLength() + TABLEBUFFER * 2, table.getyLength() + TABLEBUFFER * 2);
         gc = canvas.getGraphicsContext2D();
         pane.getChildren().add(canvas);
+
+        cfgButtons(pane);
     }
 
     /**
@@ -134,7 +140,6 @@ public class GameManager implements ResetListener {
 
     }
 
-
     /**
      * Sets the cue to be drawn on click, and manages cue actions
      * 
@@ -160,38 +165,34 @@ public class GameManager implements ResetListener {
 
     private void cfgKeyInput(Pane pane) {
         scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
-            if (key.getCode() == KeyCode.E) {
-                System.out.println("You pressed E");
-                this.setDifficulty(new Easy());
-            } else if (key.getCode() == KeyCode.N) {
-                System.out.println("You pressed N");
-                this.setDifficulty(new Normal());
-            } else if (key.getCode() == KeyCode.H) {
-                System.out.println("You pressed H");
-                this.setDifficulty(new Hard());
+            this.onUserDifficultyChange(key.getCode().toString());
+        });
+    }
+
+    private void cfgButtons(Pane pane) {
+        // save & restore buttons
+        Button save = new Button("save");
+        save.setTranslateX(100);
+        save.setTranslateY(150);
+        save.setOnAction(e -> {
+            stateTracker.setLastState(this.saveState());
+            System.out.println("State saved");
+        });
+
+        Button restore = new Button("restore");
+        restore.setTranslateX(150);
+        restore.setTranslateY(150);
+        restore.setOnAction(e -> {
+            if (stateTracker.getLastState() == null) {
+                System.out.println("No state available");
+            } else {
+                this.restoreState(stateTracker.getLastState());
+                System.out.println("State restored");
             }
         });
 
-        // // save & restore buttons
-        // Button save = new Button("save");
-        // save.setOnAction(e -> {
-        // stateTracker.addMemento(model.saveState());
-        // System.out.println("State saved");
-        // });
-
-        // Button restore = new Button("restore");
-        // restore.setTranslateX(50);
-        // restore.setOnAction(e -> {
-        // if (stateTracker.size() >= 1) {
-        // model.recoverState(stateTracker.getLastMemento());
-        // System.out.println("State restored");
-        // } else {
-        // System.out.println("No state available");
-        // }
-        // });
-
-        // pane.getChildren().add(save);
-        // pane.getChildren().add(restore);
+        pane.getChildren().add(save);
+        pane.getChildren().add(restore);
     }
 
     // ------------------------------------------------------
@@ -279,19 +280,19 @@ public class GameManager implements ResetListener {
             }
         }
     }
-    
+
     // -------------- Reset event --------------------
 
     public void initializeListeners() {
         resetListeners.clear(); // in case of re-initialized assets
 
         // gameManager itself listens to reset event
-        addResetListener(this); 
+        addResetListener(this);
         // ball listens to reset event
         for (Ball ball : balls) {
             addResetListener(ball);
             ball.addBallInPocketListener(gameState);
-        }      
+        }
     }
 
     public void addResetListener(ResetListener listener) {
@@ -312,15 +313,45 @@ public class GameManager implements ResetListener {
         gameState.setTime(0);
     }
 
+    // -------------- Swtich difficulty --------------------
     /**
      * Sets the game difficulty. Also resets game state.
      * 
      * @param difficulty difficulty state.
      */
-    private void setDifficulty(Difficulty difficulty) {
+    public void setDifficulty(Difficulty difficulty) {
         this.difficulty = difficulty;
         this.publishResetEvent();
-        this.difficulty.update(this);
+    }
+
+    /**
+     * Difficulty state changes when user press a button.
+     * 
+     * @param mode the difficulty the button corresponds to.
+     */
+    public void onUserDifficultyChange(String mode) {
+        this.difficulty.update(this, mode);
+    }
+
+    // -------------- Store/Restore game state --------------------
+    /**
+     * Store current game state, including time and score.
+     * 
+     * @return current game state.
+     */
+    public GameState saveState() {
+        List<BallState> states = new ArrayList<BallState>();
+        for (Ball ball : balls)
+            states.add(ball.getState());
+
+        return new GameState(this.gameState.getTime(), this.gameState.getScore(), states);
+    }
+
+    public void restoreState(GameState gameState) {
+        this.gameState = gameState;
+        for (int i = 0; i < this.balls.size(); i++) {
+            this.balls.get(i).setState(gameState.getBallStates().get(i));
+        }
     }
 
     // -------------- Ball logics --------------------

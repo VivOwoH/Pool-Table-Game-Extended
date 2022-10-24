@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import PoolGame.Config;
+import PoolGame.memento.BallState;
 import PoolGame.observer.BallInPocketListener;
 import PoolGame.observer.ResetListener;
 import PoolGame.strategy.PocketStrategy;
@@ -71,6 +72,18 @@ public class Ball implements ResetListener {
         yPosition = startY;
         xVelocity = 0;
         yVelocity = 0;
+    }
+
+    public BallState getState() {
+        return new BallState(xPosition, yPosition, xVelocity, yVelocity, isActive);
+    }
+
+    public void setState(BallState ballState) {
+        this.xPosition = ballState.getXPosition();
+        this.yPosition = ballState.getYPosition();
+        this.xVelocity = ballState.getXVelocity();
+        this.yVelocity = ballState.getYVelocity();
+        this.isActive = ballState.isActive();
     }
 
     /**

@@ -1,11 +1,22 @@
-package PoolGame;
+package PoolGame.memento;
+
+import java.util.List;
 
 import PoolGame.objects.Ball;
 import PoolGame.observer.BallInPocketListener;
 
 public class GameState implements BallInPocketListener {
-    private int time = 0;
-    private int score = 0;
+    private int time;
+    private int score;
+    private List<BallState> ballStates;
+
+    public GameState(int time, int score, List<BallState> ballStates) {
+        this.time = time;
+        this.score = score;
+        this.ballStates = ballStates;
+    }
+
+    // -------------- Listener event --------------------
 
     public void onBallInPocketEvent(Ball ball) {
         this.score += ball.getScore();
@@ -31,4 +42,8 @@ public class GameState implements BallInPocketListener {
     public void setScore(int score) {
         this.score = score;
     } 
+
+    public List<BallState> getBallStates() {
+        return this.ballStates;
+    }
 }
