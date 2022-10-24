@@ -21,11 +21,11 @@ import javafx.animation.Timeline;
 import javafx.scene.shape.Line;
 import javafx.scene.Scene;
 import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.scene.paint.Paint;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 
@@ -42,6 +42,9 @@ public class GameManager implements ResetListener {
     private boolean cueSet = false;
     private boolean cueActive = false;
     private boolean winFlag = false;
+
+    private Text score;
+    private Text time;
 
     private GameState gameState = new GameState(0, 0, null);
     private StateTracker stateTracker = new StateTracker();
@@ -84,6 +87,7 @@ public class GameManager implements ResetListener {
         gc = canvas.getGraphicsContext2D();
         pane.getChildren().add(canvas);
 
+        cfgGameStateUI(pane);
         cfgButtons(pane);
     }
 
@@ -169,19 +173,33 @@ public class GameManager implements ResetListener {
         });
     }
 
+    private void cfgGameStateUI(Pane pane) {
+        score = new Text(Integer.toString(this.gameState.getScore()));
+        time = new Text(Integer.toString(this.gameState.getTime()));
+        
+        score.setTranslateX(table.getxLength());
+        score.setTranslateY(TABLEBUFFER - 20);
+
+        time.setTranslateX(table.getxLength() - 50);
+        time.setTranslateY(TABLEBUFFER - 20);
+
+        pane.getChildren().add(score);
+        pane.getChildren().add(time);
+    }
+
     private void cfgButtons(Pane pane) {
         // save & restore buttons
         Button save = new Button("save");
-        save.setTranslateX(100);
-        save.setTranslateY(150);
+        save.setTranslateX(TABLEBUFFER);
+        save.setTranslateY(TABLEBUFFER - 40);
         save.setOnAction(e -> {
             stateTracker.setLastState(this.saveState());
             System.out.println("State saved");
         });
 
         Button restore = new Button("restore");
-        restore.setTranslateX(150);
-        restore.setTranslateY(150);
+        restore.setTranslateX(TABLEBUFFER + 60);
+        restore.setTranslateY(TABLEBUFFER - 40);
         restore.setOnAction(e -> {
             if (stateTracker.getLastState() == null) {
                 System.out.println("No state available");
@@ -204,6 +222,11 @@ public class GameManager implements ResetListener {
      * Used Exercise 6 as reference.
      */
     public void tick() {
+
+        this.gameState.incTime();
+        time.setText(Integer.toString(this.gameState.getTime()));
+        score.setText(Integer.toString(this.gameState.getScore()));
+
         if (gameState.getScore() == balls.size() - 1) {
             winFlag = true;
         }

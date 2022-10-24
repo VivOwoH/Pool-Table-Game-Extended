@@ -2,10 +2,12 @@ package PoolGame.memento;
 
 import java.util.List;
 
+import PoolGame.Config;
 import PoolGame.objects.Ball;
 import PoolGame.observer.BallInPocketListener;
 
 public class GameState implements BallInPocketListener {
+    private int frame = 0;
     private int time;
     private int score;
     private List<BallState> ballStates;
@@ -33,6 +35,14 @@ public class GameState implements BallInPocketListener {
 
     public void setTime(int time) {
         this.time = time;
+    }
+
+    public void incTime() {
+        this.frame++;
+        if (this.frame == Config.getFrameRate()) {
+            this.time ++;
+            this.frame = 0;
+        }
     }
 
     public int getScore() {
