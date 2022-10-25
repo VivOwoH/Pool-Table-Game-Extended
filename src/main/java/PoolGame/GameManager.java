@@ -41,6 +41,7 @@ public class GameManager implements ResetListener {
     private boolean cueSet = false;
     private boolean cueActive = false;
     private boolean winFlag = false;
+    private boolean loseFlag = false;
 
     private Text score;
     private Text time;
@@ -141,6 +142,14 @@ public class GameManager implements ResetListener {
                     table.getyLength() / 2 + TABLEBUFFER);
         }
 
+        if (loseFlag) {
+            cueSet = false;
+            cueActive = false;
+            gc.setStroke(Paint.valueOf("white"));
+            gc.setFont(new Font("Impact", 40));
+            gc.strokeText("You lose. Press Enter to restart.", table.getxLength() / 2 + TABLEBUFFER - 250,
+                    table.getyLength() / 2 + TABLEBUFFER);
+        }
     }
 
     /**
@@ -168,7 +177,13 @@ public class GameManager implements ResetListener {
 
     private void cfgKeyInput(Pane pane) {
         scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
-            this.onUserDifficultyChange(key.getCode().toString());
+            if (key.getCode() == KeyCode.E || key.getCode() == KeyCode.N || key.getCode() == KeyCode.H)
+                this.onUserDifficultyChange(key.getCode().toString());
+            else if (loseFlag && key.getCode() == KeyCode.ENTER) {
+                gc.strokeText(null, 0, 0);
+                loseFlag = false;
+                publishResetEvent();
+            }
         });
     }
 
@@ -244,12 +259,18 @@ public class GameManager implements ResetListener {
      */
     public void tick() {
 
+        if (loseFlag) return;
+            
         this.gameState.incTime();
+
         time.setText("Time: " + Integer.toString(this.gameState.getTime()));
         score.setText("Score: " + Integer.toString(this.gameState.getScore()));
 
-        if (gameState.getScore() == balls.size() - 1) {
-            winFlag = true;
+        winFlag = true;
+        for (Ball ball : balls) {
+            if (ball.isActive() && !ball.isCue()) {
+                winFlag = false;
+            }
         }
 
         for (Ball ball : balls) {
@@ -267,6 +288,7 @@ public class GameManager implements ResetListener {
                 if (pocket.isInPocket(ball)) {
                     if (ball.isCue()) {
                         publishResetEvent();
+                        loseFlag = true;
                     } else {
                         if (ball.remove()) {
                             ball.publishBallInPocketEvent();
@@ -408,7 +430,7 @@ public class GameManager implements ResetListener {
 
     public void restoreState(GameState gameState) {
         this.gameState = gameState;
-        
+
         for (int i = 0; i < this.balls.size(); i++) {
             Ball ball = this.balls.get(i);
             // ball listens to the restored state
