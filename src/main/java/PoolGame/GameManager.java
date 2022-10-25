@@ -20,6 +20,8 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.input.KeyCharacterCombination;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Paint;
@@ -210,7 +212,7 @@ public class GameManager implements ResetListener {
         comboBox.setTranslateX(TABLEBUFFER + 150);
         comboBox.setTranslateY(TABLEBUFFER - 40);
 
-        for (String color: Config.getAvailableColor()) {
+        for (String color : Config.getAvailableColor()) {
             comboBox.getItems().add(color);
         }
 
@@ -219,7 +221,11 @@ public class GameManager implements ResetListener {
 
         comboBox.setOnAction((event) -> {
             String selectedColor = (String) comboBox.getValue();
-            this.cheat(selectedColor);
+
+            scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
+                if (key.getCode() == KeyCode.C)
+                    this.cheat(selectedColor);
+            });
         });
 
         // add all these to render queue
@@ -327,7 +333,7 @@ public class GameManager implements ResetListener {
      */
     private void cheat(String colour) {
         for (Ball ball : this.balls) {
-            if (ball.getColour().toString().equals(colour) && ball.isActive()) {
+            if (ball.getColour() == Paint.valueOf(colour) && ball.isActive()) {
                 ball.forceRemove();
                 ball.publishBallInPocketEvent();
             }
