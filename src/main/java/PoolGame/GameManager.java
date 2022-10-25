@@ -1,34 +1,31 @@
 package PoolGame;
 
-import PoolGame.memento.BallState;
-import PoolGame.memento.GameState;
-import PoolGame.memento.StateTracker;
-import PoolGame.objects.*;
-import PoolGame.observer.ResetListener;
-import PoolGame.state.Difficulty;
-import PoolGame.state.Easy;
-import PoolGame.state.Hard;
-import PoolGame.state.Normal;
-
 import java.util.ArrayList;
 import java.util.List;
 
-import javafx.geometry.Point2D;
-
+import PoolGame.memento.BallState;
+import PoolGame.memento.GameState;
+import PoolGame.memento.StateTracker;
+import PoolGame.objects.Ball;
+import PoolGame.objects.Pocket;
+import PoolGame.objects.Table;
+import PoolGame.observer.ResetListener;
+import PoolGame.state.Difficulty;
+import PoolGame.state.Easy;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-
-import javafx.scene.shape.Line;
+import javafx.geometry.Point2D;
 import javafx.scene.Scene;
-import javafx.scene.text.Font;
-import javafx.scene.text.Text;
-import javafx.scene.paint.Paint;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
-
+import javafx.scene.paint.Paint;
+import javafx.scene.shape.Line;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.util.Duration;
 import javafx.util.Pair;
 
@@ -88,7 +85,7 @@ public class GameManager implements ResetListener {
         pane.getChildren().add(canvas);
 
         cfgGameStateUI(pane);
-        cfgButtons(pane);
+        cfgInteractables(pane);
     }
 
     /**
@@ -174,20 +171,20 @@ public class GameManager implements ResetListener {
     }
 
     private void cfgGameStateUI(Pane pane) {
-        score = new Text(Integer.toString(this.gameState.getScore()));
-        time = new Text(Integer.toString(this.gameState.getTime()));
-        
+        score = new Text("Score: " + Integer.toString(this.gameState.getScore()));
+        time = new Text("Time elapsed: " + Integer.toString(this.gameState.getTime()));
+
         score.setTranslateX(table.getxLength());
         score.setTranslateY(TABLEBUFFER - 20);
 
-        time.setTranslateX(table.getxLength() - 50);
+        time.setTranslateX(table.getxLength() - 100);
         time.setTranslateY(TABLEBUFFER - 20);
 
         pane.getChildren().add(score);
         pane.getChildren().add(time);
     }
 
-    private void cfgButtons(Pane pane) {
+    private void cfgInteractables(Pane pane) {
         // save & restore buttons
         Button save = new Button("save");
         save.setTranslateX(TABLEBUFFER);
@@ -209,6 +206,24 @@ public class GameManager implements ResetListener {
             }
         });
 
+        ComboBox<String> comboBox = new ComboBox<String>();
+        comboBox.setTranslateX(TABLEBUFFER + 150);
+        comboBox.setTranslateY(TABLEBUFFER - 40);
+
+        for (String color: Config.getAvailableColor()) {
+            comboBox.getItems().add(color);
+        }
+
+        comboBox.setPromptText("--Cheat--"); // prompt text
+        // comboBox.getSelectionModel().selectFirst(); // placeholder = 1st option
+
+        comboBox.setOnAction((event) -> {
+            String selectedColor = (String) comboBox.getValue();
+            this.cheat(selectedColor);
+        });
+
+        // add all these to render queue
+        pane.getChildren().add(comboBox);
         pane.getChildren().add(save);
         pane.getChildren().add(restore);
     }
@@ -224,8 +239,8 @@ public class GameManager implements ResetListener {
     public void tick() {
 
         this.gameState.incTime();
-        time.setText(Integer.toString(this.gameState.getTime()));
-        score.setText(Integer.toString(this.gameState.getScore()));
+        time.setText("Time: " + Integer.toString(this.gameState.getTime()));
+        score.setText("Score: " + Integer.toString(this.gameState.getScore()));
 
         if (gameState.getScore() == balls.size() - 1) {
             winFlag = true;
@@ -257,7 +272,8 @@ public class GameManager implements ResetListener {
                                 double deltaY = ball.getyPos() - otherBall.getyPos();
                                 double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
                                 if (otherBall != ball && otherBall.isActive() && distance < 10) {
-                                    ball.forceRemove(); // does not update score
+                                    ball.forceRemove(); // we don't publish inPocket event because this remove is due to
+                                                        // ball collision
                                 }
                             }
                         }
@@ -300,6 +316,20 @@ public class GameManager implements ResetListener {
                             ballBVel, ballB.getMass(), false);
                     calculateChanges(changes, ball, ballB);
                 }
+            }
+        }
+    }
+
+    /**
+     * Remove all active balls of a given colour.
+     * 
+     * @param colour colour string.
+     */
+    private void cheat(String colour) {
+        for (Ball ball : this.balls) {
+            if (ball.getColour().toString().equals(colour) && ball.isActive()) {
+                ball.forceRemove();
+                ball.publishBallInPocketEvent();
             }
         }
     }

@@ -1,5 +1,7 @@
 package PoolGame;
 
+import java.util.HashMap;
+
 /** Holds static final data. */
 public class Config {
     private static final double FRAMERATE = 60;
@@ -8,6 +10,45 @@ public class Config {
     private static final String configPathEasy = "src/main/resources/config_easy.json";
     private static final String configPathNormal = "src/main/resources/config_normal.json";
     private static final String configPathHard = "src/main/resources/config_hard.json";
+
+    private static final String[] availableColor = { "orange", "yellow", "red", "green", "purple",
+            "blue", "black", "brown" };
+    private static final String[] strategyOneColor = { "orange", "yellow", "red" };
+    private static final String[] strategyTwoColor = { "green", "purple", "blue" };
+    private static final String[] strategyThreeColor = { "black", "brown" };
+    private static final HashMap<String, Integer> scoreMap = new HashMap<>() {
+        {
+            put("white", 0);
+            put("red", 1);
+            put("yellow", 2);
+            put("green", 3);
+            put("brown", 4);
+            put("blue", 5);
+            put("purple", 6);
+            put("black", 7);
+            put("orange", 8);
+        }
+    };
+
+    public static String[] getAvailableColor() {
+        return availableColor;
+    }
+
+    public static String[] getStrategyOneColor() {
+        return strategyOneColor;
+    }
+
+    public static String[] getStrategyTwoColor() {
+        return strategyTwoColor;
+    }
+
+    public static String[] getStrategyThreeColor() {
+        return strategyThreeColor;
+    }
+
+    public static HashMap<String, Integer> getScoreMap() {
+        return scoreMap;
+    }
 
     /**
      * Returns frame rate for this game.
@@ -38,7 +79,7 @@ public class Config {
 
     /**
      * Returns the config path for easy difficulty.
-     *  
+     * 
      * @return easy config path.
      */
     public static String getEasyConfig() {
@@ -47,7 +88,7 @@ public class Config {
 
     /**
      * Returns the config path for normal difficulty.
-     *  
+     * 
      * @return normal config path.
      */
     public static String getNormalConfig() {
@@ -56,7 +97,7 @@ public class Config {
 
     /**
      * Returns the config path for hard difficulty.
-     *  
+     * 
      * @return hard config path.
      */
     public static String getHardConfig() {
