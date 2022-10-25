@@ -136,9 +136,11 @@ public class GameManager implements ResetListener {
 
         // Win
         if (winFlag) {
+            cueSet = false;
+            cueActive = false;
             gc.setStroke(Paint.valueOf("white"));
-            gc.setFont(new Font("Impact", 80));
-            gc.strokeText("Win and bye", table.getxLength() / 2 + TABLEBUFFER - 180,
+            gc.setFont(new Font("Impact", 40));
+            gc.strokeText("Win and bye. Press Enter to restart.", table.getxLength() / 2 + TABLEBUFFER - 280,
                     table.getyLength() / 2 + TABLEBUFFER);
         }
 
@@ -179,9 +181,10 @@ public class GameManager implements ResetListener {
         scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
             if (key.getCode() == KeyCode.E || key.getCode() == KeyCode.N || key.getCode() == KeyCode.H)
                 this.onUserDifficultyChange(key.getCode().toString());
-            else if (loseFlag && key.getCode() == KeyCode.ENTER) {
+            else if ((loseFlag || winFlag) && key.getCode() == KeyCode.ENTER) {
                 gc.strokeText(null, 0, 0);
                 loseFlag = false;
+                winFlag = false;
                 publishResetEvent();
             }
         });
@@ -259,7 +262,7 @@ public class GameManager implements ResetListener {
      */
     public void tick() {
 
-        if (loseFlag) return;
+        if (loseFlag || winFlag) return;
             
         this.gameState.incTime();
 
