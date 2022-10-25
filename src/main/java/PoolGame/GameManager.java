@@ -408,9 +408,18 @@ public class GameManager implements ResetListener {
 
     public void restoreState(GameState gameState) {
         this.gameState = gameState;
+        
         for (int i = 0; i < this.balls.size(); i++) {
-            this.balls.get(i).setState(gameState.getBallStates().get(i));
+            Ball ball = this.balls.get(i);
+            // ball listens to the restored state
+            ball.clearListener();
+            ball.addBallInPocketListener(gameState);
+            ball.setState(gameState.getBallStates().get(i));
         }
+
+        // IMPORTANT: when you restore the state, current state now refers to the last
+        // tracked state (same); so we need to create another copy
+        stateTracker.setLastState(this.saveState());
     }
 
     // -------------- Ball logics --------------------

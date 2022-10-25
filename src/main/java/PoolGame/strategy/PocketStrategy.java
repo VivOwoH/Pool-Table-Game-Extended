@@ -23,6 +23,14 @@ public abstract class PocketStrategy {
         this.lives = 0;
     }
 
+    public int getLives() {
+        return this.lives;
+    }
+
+    public void setLives(int lives) {
+        this.lives = lives;
+    }
+
     /**
      * Resets the ball to its original state.
      */

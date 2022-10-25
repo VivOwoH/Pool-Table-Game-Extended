@@ -75,7 +75,7 @@ public class Ball implements ResetListener {
     }
 
     public BallState getState() {
-        return new BallState(xPosition, yPosition, xVelocity, yVelocity, isActive);
+        return new BallState(xPosition, yPosition, xVelocity, yVelocity, isActive, strategy.getLives());
     }
 
     public void setState(BallState ballState) {
@@ -84,6 +84,7 @@ public class Ball implements ResetListener {
         this.xVelocity = ballState.getXVelocity();
         this.yVelocity = ballState.getYVelocity();
         this.isActive = ballState.isActive();
+        this.strategy.setLives(ballState.getLives());
     }
 
     /**
@@ -107,6 +108,10 @@ public class Ball implements ResetListener {
     public void forceRemove() {
         strategy.forceRemove();
         isActive = false;
+    }
+
+    public void clearListener() {
+        this.ballInPocketlisteners.clear();
     }
 
     /**
