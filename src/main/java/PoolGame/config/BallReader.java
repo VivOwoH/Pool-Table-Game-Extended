@@ -73,7 +73,13 @@ public class BallReader implements Reader {
 				balls.add(builder.build());
 			}
 
+			for (Ball ball : balls) {
+				if (ball.isCue())
+					gameManager.setCueBall(ball);
+			}
+
 			gameManager.setBalls(balls);
+			
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

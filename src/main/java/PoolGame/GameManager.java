@@ -20,10 +20,10 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
-import javafx.scene.input.KeyCharacterCombination;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Line;
 import javafx.scene.text.Font;
@@ -37,7 +37,10 @@ import javafx.util.Pair;
 public class GameManager implements ResetListener {
     private Table table;
     private ArrayList<Ball> balls = new ArrayList<Ball>();
-    private Line cue;
+    private Ball cueBall;
+    private Line cue; // this is player movement
+    private Line cuestick; // this is the cuestick sprite always on screen
+    private double[] mouesPosition = new double[]{0,0};
     private boolean cueSet = false;
     private boolean cueActive = false;
     private boolean winFlag = false;
@@ -80,6 +83,7 @@ public class GameManager implements ResetListener {
         Pane pane = new Pane();
         this.scene = new Scene(pane, table.getxLength() + TABLEBUFFER * 2, table.getyLength() + TABLEBUFFER * 2);
 
+        cfgMouseMovement(pane);
         setClickEvents(pane);
         cfgKeyInput(pane);
 
@@ -118,6 +122,21 @@ public class GameManager implements ResetListener {
                     pocket.getRadius() * 2, pocket.getRadius() * 2);
         }
 
+        double deltaX = mouesPosition[0] - cueBall.getxPos();
+        double deltaY = mouesPosition[1] - cueBall.getyPos();
+        double radAngle = Math.atan2(deltaY, deltaX);
+        // System.out.println(Double.toString(deltaX) + " " + Double.toString(deltaY));
+        
+        // Cuestick
+        // x_length = cos(radAngle) * length
+        // y_length = sin(radAngle) * length
+        this.cuestick = new Line(cueBall.getxPos(), cueBall.getyPos(), 
+            cueBall.getxPos() - Math.cos(radAngle) * Config.getCueStickLength(), 
+            cueBall.getyPos() - Math.sin(radAngle) * Config.getCueStickLength());
+        gc.setLineWidth(5);
+        gc.setStroke(Paint.valueOf("burlywood"));
+        gc.strokeLine(cuestick.getStartX(), cuestick.getStartY(), cuestick.getEndX(), cuestick.getEndY());
+
         // Cue
         if (this.cue != null && cueActive) {
             gc.strokeLine(cue.getStartX(), cue.getStartY(), cue.getEndX(), cue.getEndY());
@@ -152,6 +171,12 @@ public class GameManager implements ResetListener {
             gc.strokeText("You lose. Press Enter to restart.", table.getxLength() / 2 + TABLEBUFFER - 250,
                     table.getyLength() / 2 + TABLEBUFFER);
         }
+    }
+
+    private void cfgMouseMovement(Pane pane) {
+        pane.setOnMouseMoved(event -> {
+            mouesPosition = new double[]{event.getX(), event.getY()};
+        });
     }
 
     /**
@@ -595,5 +620,9 @@ public class GameManager implements ResetListener {
      */
     public void setBalls(ArrayList<Ball> balls) {
         this.balls = balls;
+    }
+
+    public void setCueBall(Ball ball) {
+        this.cueBall = ball;
     }
 }
