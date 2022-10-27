@@ -40,7 +40,8 @@ public class GameManager implements ResetListener {
     private Ball cueBall;
     private Line cue; // this is player movement
     private Line cuestick; // this is the cuestick sprite always on screen
-    private double[] mouesPosition = new double[]{0,0};
+    private double[] mouesPosition = new double[] { 0, 0 };
+    private double angle;
     private boolean cueSet = false;
     private boolean cueActive = false;
     private boolean winFlag = false;
@@ -126,20 +127,27 @@ public class GameManager implements ResetListener {
         double deltaY = mouesPosition[1] - cueBall.getyPos();
         double radAngle = Math.atan2(deltaY, deltaX);
         // System.out.println(Double.toString(deltaX) + " " + Double.toString(deltaY));
-        
+
         // Cuestick
         // x_length = cos(radAngle) * length
         // y_length = sin(radAngle) * length
-        this.cuestick = new Line(cueBall.getxPos(), cueBall.getyPos(), 
-            cueBall.getxPos() - Math.cos(radAngle) * Config.getCueStickLength(), 
-            cueBall.getyPos() - Math.sin(radAngle) * Config.getCueStickLength());
+        this.cuestick = new Line(cueBall.getxPos(), cueBall.getyPos(),
+                cueBall.getxPos() - Math.cos(radAngle) * Config.getCueStickLength(),
+                cueBall.getyPos() - Math.sin(radAngle) * Config.getCueStickLength());
         gc.setLineWidth(5);
         gc.setStroke(Paint.valueOf("burlywood"));
-        gc.strokeLine(cuestick.getStartX(), cuestick.getStartY(), cuestick.getEndX(), cuestick.getEndY());
 
-        // Cue
         if (this.cue != null && cueActive) {
-            gc.strokeLine(cue.getStartX(), cue.getStartY(), cue.getEndX(), cue.getEndY());
+            // move cuestick back according to drag
+            double x = cue.getEndX() - cue.getStartX();
+            double y = cue.getEndY() - cue.getStartY();
+            double translateX = Math.cos(angle) * Math.sqrt(x * x + y * y);
+            double translateY = Math.sin(angle) * Math.sqrt(x * x + y * y);
+            gc.strokeLine(cuestick.getStartX() - translateX, cuestick.getStartY() - translateY,
+                    cuestick.getEndX() - translateX, cuestick.getEndY() - translateY);
+        }  else if (cueBall.getxVel() < 0.05 && cueBall.getyVel() < 0.05) {
+            gc.strokeLine(cuestick.getStartX(), cuestick.getStartY(),
+                    cuestick.getEndX(), cuestick.getEndY());
         }
 
         for (Ball ball : balls) {
@@ -175,7 +183,7 @@ public class GameManager implements ResetListener {
 
     private void cfgMouseMovement(Pane pane) {
         pane.setOnMouseMoved(event -> {
-            mouesPosition = new double[]{event.getX(), event.getY()};
+            mouesPosition = new double[] { event.getX(), event.getY() };
         });
     }
 
@@ -189,6 +197,9 @@ public class GameManager implements ResetListener {
             cue = new Line(event.getX(), event.getY(), event.getX(), event.getY());
             cueSet = false;
             cueActive = true;
+            double deltaX = event.getX() - cueBall.getxPos();
+            double deltaY = event.getY() - cueBall.getyPos();
+            angle = Math.atan2(deltaY, deltaX);
         });
 
         pane.setOnMouseDragged(event -> {
@@ -263,11 +274,12 @@ public class GameManager implements ResetListener {
         // comboBox.getSelectionModel().selectFirst(); // placeholder = 1st option
 
         comboBox.setOnAction((event) -> {
-            String selectedColor = (String) comboBox.getValue();
-
             scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
-                if (key.getCode() == KeyCode.C)
+                String selectedColor = (String) comboBox.getValue();
+                
+                if (key.getCode() == KeyCode.C) {
                     this.cheat(selectedColor);
+                }
             });
         });
 
@@ -287,8 +299,9 @@ public class GameManager implements ResetListener {
      */
     public void tick() {
 
-        if (loseFlag || winFlag) return;
-            
+        if (loseFlag || winFlag)
+            return;
+
         this.gameState.incTime();
 
         time.setText("Time: " + Integer.toString(this.gameState.getTime()));
@@ -305,7 +318,7 @@ public class GameManager implements ResetListener {
             ball.tick();
 
             if (ball.isCue() && cueSet) {
-                hitBall(ball);
+                hitBall(ball, angle);
             }
 
             double width = table.getxLength();
@@ -420,16 +433,18 @@ public class GameManager implements ResetListener {
     public void reset() {
         gameState.setScore(0);
         gameState.setTime(0);
+        this.stateTracker.setLastState(null);
     }
 
     // -------------- Swtich difficulty --------------------
     /**
-     * Sets the game difficulty. Also resets game state.
+     * Sets the game difficulty. Also resets game state and clears last saved game state.
      * 
      * @param difficulty difficulty state.
      */
     public void setDifficulty(Difficulty difficulty) {
         this.difficulty = difficulty;
+        this.stateTracker.setLastState(null);
         this.publishResetEvent();
     }
 
@@ -452,24 +467,19 @@ public class GameManager implements ResetListener {
         List<BallState> states = new ArrayList<BallState>();
         for (Ball ball : balls)
             states.add(ball.getState());
-
+        
         return new GameState(this.gameState.getTime(), this.gameState.getScore(), states);
     }
 
     public void restoreState(GameState gameState) {
-        this.gameState = gameState;
+        // restore time, score, ballState
+        this.gameState.setTime(gameState.getTime());
+        this.gameState.setScore(gameState.getScore());
 
         for (int i = 0; i < this.balls.size(); i++) {
             Ball ball = this.balls.get(i);
-            // ball listens to the restored state
-            ball.clearListener();
-            ball.addBallInPocketListener(gameState);
             ball.setState(gameState.getBallStates().get(i));
         }
-
-        // IMPORTANT: when you restore the state, current state now refers to the last
-        // tracked state (same); so we need to create another copy
-        stateTracker.setLastState(this.saveState());
     }
 
     // -------------- Ball logics --------------------
@@ -479,23 +489,18 @@ public class GameManager implements ResetListener {
      * 
      * @param ball
      */
-    private void hitBall(Ball ball) {
-        double deltaX = ball.getxPos() - cue.getStartX();
-        double deltaY = ball.getyPos() - cue.getStartY();
-        double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    private void hitBall(Ball ball, double radAngle) {
+        double hitxVel = (cue.getStartX() - cue.getEndX()) * FORCEFACTOR;
+        double hityVel = (cue.getStartY() - cue.getEndY()) * FORCEFACTOR;
+        double hitVel = Math.sqrt(hitxVel * hitxVel + hityVel * hityVel);
 
-        // Check that start of cue is within cue ball
-        if (distance < ball.getRadius()) {
-            // Collide ball with cue
-            double hitxVel = (cue.getStartX() - cue.getEndX()) * FORCEFACTOR;
-            double hityVel = (cue.getStartY() - cue.getEndY()) * FORCEFACTOR;
+        hitxVel = Math.cos(radAngle) * hitVel;
+        hityVel = Math.sin(radAngle) * hitVel;
 
-            ball.setxVel(hitxVel);
-            ball.setyVel(hityVel);
-        }
+        ball.setxVel(hitxVel);
+        ball.setyVel(hityVel);
 
         cueSet = false;
-
     }
 
     /**

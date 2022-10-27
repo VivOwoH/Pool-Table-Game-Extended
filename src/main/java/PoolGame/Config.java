@@ -7,7 +7,7 @@ public class Config {
     private static final double FRAMERATE = 60;
     private static final double TABLEBUFFER = 50;
     private static final double TABLEEDGE = 10;
-    private static final double CUESTICKLENGTH = 300;
+    private static final double CUESTICKLENGTH = 350;
     private static final String configPathEasy = "src/main/resources/config_easy.json";
     private static final String configPathNormal = "src/main/resources/config_normal.json";
     private static final String configPathHard = "src/main/resources/config_hard.json";
