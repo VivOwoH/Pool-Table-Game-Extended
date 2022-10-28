@@ -19,14 +19,27 @@ public abstract class PocketStrategy {
         return false;
     }
 
+    /**
+     * Remove the ball no matter how many lives left. Sets life to 0.
+     */
     public void forceRemove() {
         this.lives = 0;
     }
 
+    /**
+     * Get current lives of the ball.
+     * 
+     * @return number of lives left.
+     */
     public int getLives() {
         return this.lives;
     }
 
+    /**
+     * Sets the current life of the ball.
+     * 
+     * @param lives number of lives given.
+     */
     public void setLives(int lives) {
         this.lives = lives;
     }

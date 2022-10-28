@@ -74,10 +74,20 @@ public class Ball implements ResetListener {
         yVelocity = 0;
     }
 
+    /**
+     * Gets the current state of this ball.
+     * 
+     * @return current ball state.
+     */
     public BallState getState() {
         return new BallState(xPosition, yPosition, xVelocity, yVelocity, isActive, strategy.getLives());
     }
 
+    /**
+     * Sets the current ball state.
+     * 
+     * @param ballState ball state to be set to.
+     */
     public void setState(BallState ballState) {
         this.xPosition = ballState.getXPosition();
         this.yPosition = ballState.getYPosition();
@@ -110,6 +120,9 @@ public class Ball implements ResetListener {
         isActive = false;
     }
 
+    /**
+     * Clear all listeners that are currently listening to this ball falling to a pocket.
+     */
     public void clearListener() {
         this.ballInPocketlisteners.clear();
     }

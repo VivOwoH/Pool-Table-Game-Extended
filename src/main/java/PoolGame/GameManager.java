@@ -23,7 +23,6 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Line;
 import javafx.scene.text.Font;
@@ -62,6 +61,9 @@ public class GameManager implements ResetListener {
     private Scene scene;
     private GraphicsContext gc;
 
+    /**
+     * Constructor. Also calls itself to initialize all event listeners.
+     */
     public GameManager() {
         initializeListeners();
     }
@@ -145,7 +147,7 @@ public class GameManager implements ResetListener {
             double translateY = Math.sin(angle) * Math.sqrt(x * x + y * y);
             gc.strokeLine(cuestick.getStartX() - translateX, cuestick.getStartY() - translateY,
                     cuestick.getEndX() - translateX, cuestick.getEndY() - translateY);
-        }  else if (cueBall.getxVel() < 0.05 && cueBall.getyVel() < 0.05) {
+        } else if (cueBall.getxVel() < 0.05 && cueBall.getyVel() < 0.05) {
             gc.strokeLine(cuestick.getStartX(), cuestick.getStartY(),
                     cuestick.getEndX(), cuestick.getEndY());
         }
@@ -181,6 +183,11 @@ public class GameManager implements ResetListener {
         }
     }
 
+    /**
+     * Records mouse position on screen.
+     * 
+     * @param pane
+     */
     private void cfgMouseMovement(Pane pane) {
         pane.setOnMouseMoved(event -> {
             mouesPosition = new double[] { event.getX(), event.getY() };
@@ -213,6 +220,13 @@ public class GameManager implements ResetListener {
         });
     }
 
+    /**
+     * Configure all events that response to key input. 
+     * E,N,H - switch difficulty
+     * R - resets this game 
+     * 
+     * @param pane
+     */
     private void cfgKeyInput(Pane pane) {
         scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
             if (key.getCode() == KeyCode.E || key.getCode() == KeyCode.N || key.getCode() == KeyCode.H)
@@ -226,6 +240,11 @@ public class GameManager implements ResetListener {
         });
     }
 
+    /**
+     * Configure the on-screen UI that displays game status (time, score)
+     * 
+     * @param pane
+     */
     private void cfgGameStateUI(Pane pane) {
         score = new Text("Score: " + Integer.toString(this.gameState.getScore()));
         time = new Text("Time elapsed: " + Integer.toString(this.gameState.getTime()));
@@ -240,6 +259,11 @@ public class GameManager implements ResetListener {
         pane.getChildren().add(time);
     }
 
+    /**
+     * Configure on-screen UI that the player can interact with.
+     * 
+     * @param pane
+     */
     private void cfgInteractables(Pane pane) {
         // save & restore buttons
         Button save = new Button("save");
@@ -405,6 +429,9 @@ public class GameManager implements ResetListener {
 
     // -------------- Reset event --------------------
 
+    /**
+     * Intialize all event listeners.
+     */
     public void initializeListeners() {
         resetListeners.clear(); // in case of re-initialized assets
 
@@ -417,10 +444,18 @@ public class GameManager implements ResetListener {
         }
     }
 
+    /**
+     * Adds a listener to a reset event.
+     * 
+     * @param listener class that listens to a reset event.
+     */
     public void addResetListener(ResetListener listener) {
         this.resetListeners.add(listener);
     }
 
+    /**
+     * Publish a reset event to alert all listeners.
+     */
     public void publishResetEvent() {
         for (ResetListener listener : this.resetListeners) {
             listener.reset();
@@ -428,7 +463,7 @@ public class GameManager implements ResetListener {
     }
 
     /**
-     * Resets time and score.
+     * Resets time and score, also clears the stored state.
      */
     public void reset() {
         gameState.setScore(0);
@@ -438,7 +473,8 @@ public class GameManager implements ResetListener {
 
     // -------------- Swtich difficulty --------------------
     /**
-     * Sets the game difficulty. Also resets game state and clears last saved game state.
+     * Sets the game difficulty. Also resets game state and clears last saved game
+     * state.
      * 
      * @param difficulty difficulty state.
      */
@@ -459,7 +495,7 @@ public class GameManager implements ResetListener {
 
     // -------------- Store/Restore game state --------------------
     /**
-     * Store current game state, including time and score.
+     * Store current game state, including time, score and ball states.
      * 
      * @return current game state.
      */
@@ -467,10 +503,15 @@ public class GameManager implements ResetListener {
         List<BallState> states = new ArrayList<BallState>();
         for (Ball ball : balls)
             states.add(ball.getState());
-        
+
         return new GameState(this.gameState.getTime(), this.gameState.getScore(), states);
     }
 
+    /**
+     * Restore to the last saved game state.
+     * 
+     * @param gameState last saved gate state.
+     */
     public void restoreState(GameState gameState) {
         // restore time, score, ballState
         this.gameState.setTime(gameState.getTime());
@@ -627,6 +668,11 @@ public class GameManager implements ResetListener {
         this.balls = balls;
     }
 
+    /**
+     * Sets the cue ball of the game.
+     * 
+     * @param ball cue ball.
+     */
     public void setCueBall(Ball ball) {
         this.cueBall = ball;
     }

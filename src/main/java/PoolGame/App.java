@@ -41,6 +41,12 @@ public class App extends Application {
         gameManager.run();
     }
 
+    /**
+     * Initialize all game assets, and event listeners.
+     * 
+     * @param configPath  Location to configuration file.
+     * @param gameManager Main class that managers most game logic.
+     */
     public static void initializeAssets(String configPath, GameManager gameManager) {
         ReaderFactory tableFactory = new TableReaderFactory();
         Reader tableReader = tableFactory.buildReader();

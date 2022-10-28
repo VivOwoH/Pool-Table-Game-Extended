@@ -1,5 +1,6 @@
 package PoolGame.memento;
 
+/** Holds game state for undo and restore. */
 public class StateTracker {
     
     private GameState gameState;

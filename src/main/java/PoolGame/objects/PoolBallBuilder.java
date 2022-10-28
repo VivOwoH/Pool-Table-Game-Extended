@@ -23,8 +23,6 @@ public class PoolBallBuilder implements BallBuilder {
     private boolean isCue = false;
     private PocketStrategy strategy;
 
-    
-
     @Override
     public void setColour(String colour) {
         this.colour = colour;
