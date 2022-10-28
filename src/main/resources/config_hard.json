@@ -1,53 +1,53 @@
 {
   "Table": {
-    "colour": "green",
+    "colour": "DARKSEAGREEN",
     "friction": 0.9,
     "size": {
       "x": 600,
       "y": 400
     },
-  "pockets": [
+    "pockets": [
       {
         "position": {
-          "x": 50.0,
+          "x": 30.0,
           "y": 25.0
         },
-        "radius": 25.0
+        "radius": 20.0
       },
       {
         "position": {
-          "x": 650.0,
+          "x": 600.0,
           "y": 25.0
         },
-        "radius": 25.0
+        "radius": 20.0
       },
       {
         "position": {
-          "x": 50.0,
-          "y": 425.0
+          "x": 30.0,
+          "y": 400.0
         },
-        "radius": 25.0
+        "radius": 20.0
       },
       {
         "position": {
-          "x": 650.0,
-          "y": 425.0
+          "x": 600.0,
+          "y": 400.0
         },
-        "radius": 25.0
+        "radius": 20.0
       },
       {
         "position": {
-          "x": 350.0,
+          "x": 300.0,
           "y": 25.0
         },
-        "radius": 25.0
+        "radius": 20.0
       },
       {
         "position": {
-          "x": 350.0,
-          "y": 425.0
+          "x": 300.0,
+          "y": 400.0
         },
-        "radius": 25.0
+        "radius": 20.0
       }
       ]
   },
