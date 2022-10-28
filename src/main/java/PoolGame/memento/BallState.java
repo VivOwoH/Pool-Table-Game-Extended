@@ -7,14 +7,16 @@ public class BallState {
     private double xVelocity;
     private double yVelocity;
     private boolean isActive;
+    private int lives;
 
     public BallState(double xPosition, double yPosition,
-            double xVelocity, double yVelocity, boolean isActive) {
+            double xVelocity, double yVelocity, boolean isActive, int lives) {
         this.xPosition = xPosition;
         this.yPosition = yPosition;
         this.xVelocity = xVelocity;
         this.yVelocity = yVelocity;
         this.isActive = isActive;
+        this.lives = lives;
     }
 
     public double getXPosition() {
@@ -55,5 +57,13 @@ public class BallState {
 
     public void setActive(boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public int getLives() {
+        return this.lives;
+    }
+
+    public void setLives(int lives) {
+        this.lives = lives;
     }
 }

@@ -1,34 +1,33 @@
 package PoolGame;
 
-import PoolGame.memento.BallState;
-import PoolGame.memento.GameState;
-import PoolGame.memento.StateTracker;
-import PoolGame.objects.*;
-import PoolGame.observer.ResetListener;
-import PoolGame.state.Difficulty;
-import PoolGame.state.Easy;
-import PoolGame.state.Hard;
-import PoolGame.state.Normal;
-
 import java.util.ArrayList;
 import java.util.List;
 
-import javafx.geometry.Point2D;
-
+import PoolGame.memento.BallState;
+import PoolGame.memento.GameState;
+import PoolGame.memento.StateTracker;
+import PoolGame.objects.Ball;
+import PoolGame.objects.Pocket;
+import PoolGame.objects.Table;
+import PoolGame.observer.ResetListener;
+import PoolGame.state.Difficulty;
+import PoolGame.state.Easy;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-
-import javafx.scene.shape.Line;
+import javafx.geometry.Point2D;
 import javafx.scene.Scene;
-import javafx.scene.text.Font;
-import javafx.scene.text.Text;
-import javafx.scene.paint.Paint;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
-
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import javafx.scene.shape.Line;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.util.Duration;
 import javafx.util.Pair;
 
@@ -38,10 +37,15 @@ import javafx.util.Pair;
 public class GameManager implements ResetListener {
     private Table table;
     private ArrayList<Ball> balls = new ArrayList<Ball>();
-    private Line cue;
+    private Ball cueBall;
+    private Line cue; // this is player movement
+    private Line cuestick; // this is the cuestick sprite always on screen
+    private double[] mouesPosition = new double[] { 0, 0 };
+    private double angle;
     private boolean cueSet = false;
     private boolean cueActive = false;
     private boolean winFlag = false;
+    private boolean loseFlag = false;
 
     private Text score;
     private Text time;
@@ -80,6 +84,7 @@ public class GameManager implements ResetListener {
         Pane pane = new Pane();
         this.scene = new Scene(pane, table.getxLength() + TABLEBUFFER * 2, table.getyLength() + TABLEBUFFER * 2);
 
+        cfgMouseMovement(pane);
         setClickEvents(pane);
         cfgKeyInput(pane);
 
@@ -88,7 +93,7 @@ public class GameManager implements ResetListener {
         pane.getChildren().add(canvas);
 
         cfgGameStateUI(pane);
-        cfgButtons(pane);
+        cfgInteractables(pane);
     }
 
     /**
@@ -118,9 +123,31 @@ public class GameManager implements ResetListener {
                     pocket.getRadius() * 2, pocket.getRadius() * 2);
         }
 
-        // Cue
+        double deltaX = mouesPosition[0] - cueBall.getxPos();
+        double deltaY = mouesPosition[1] - cueBall.getyPos();
+        double radAngle = Math.atan2(deltaY, deltaX);
+        // System.out.println(Double.toString(deltaX) + " " + Double.toString(deltaY));
+
+        // Cuestick
+        // x_length = cos(radAngle) * length
+        // y_length = sin(radAngle) * length
+        this.cuestick = new Line(cueBall.getxPos(), cueBall.getyPos(),
+                cueBall.getxPos() - Math.cos(radAngle) * Config.getCueStickLength(),
+                cueBall.getyPos() - Math.sin(radAngle) * Config.getCueStickLength());
+        gc.setLineWidth(5);
+        gc.setStroke(Paint.valueOf("burlywood"));
+
         if (this.cue != null && cueActive) {
-            gc.strokeLine(cue.getStartX(), cue.getStartY(), cue.getEndX(), cue.getEndY());
+            // move cuestick back according to drag
+            double x = cue.getEndX() - cue.getStartX();
+            double y = cue.getEndY() - cue.getStartY();
+            double translateX = Math.cos(angle) * Math.sqrt(x * x + y * y);
+            double translateY = Math.sin(angle) * Math.sqrt(x * x + y * y);
+            gc.strokeLine(cuestick.getStartX() - translateX, cuestick.getStartY() - translateY,
+                    cuestick.getEndX() - translateX, cuestick.getEndY() - translateY);
+        }  else if (cueBall.getxVel() < 0.05 && cueBall.getyVel() < 0.05) {
+            gc.strokeLine(cuestick.getStartX(), cuestick.getStartY(),
+                    cuestick.getEndX(), cuestick.getEndY());
         }
 
         for (Ball ball : balls) {
@@ -136,12 +163,28 @@ public class GameManager implements ResetListener {
 
         // Win
         if (winFlag) {
+            cueSet = false;
+            cueActive = false;
             gc.setStroke(Paint.valueOf("white"));
-            gc.setFont(new Font("Impact", 80));
-            gc.strokeText("Win and bye", table.getxLength() / 2 + TABLEBUFFER - 180,
+            gc.setFont(new Font("Impact", 40));
+            gc.strokeText("Win and bye. Press R to restart.", table.getxLength() / 2 + TABLEBUFFER - 250,
                     table.getyLength() / 2 + TABLEBUFFER);
         }
 
+        if (loseFlag) {
+            cueSet = false;
+            cueActive = false;
+            gc.setStroke(Paint.valueOf("white"));
+            gc.setFont(new Font("Impact", 40));
+            gc.strokeText("You lose. Press R to restart.", table.getxLength() / 2 + TABLEBUFFER - 220,
+                    table.getyLength() / 2 + TABLEBUFFER);
+        }
+    }
+
+    private void cfgMouseMovement(Pane pane) {
+        pane.setOnMouseMoved(event -> {
+            mouesPosition = new double[] { event.getX(), event.getY() };
+        });
     }
 
     /**
@@ -154,6 +197,9 @@ public class GameManager implements ResetListener {
             cue = new Line(event.getX(), event.getY(), event.getX(), event.getY());
             cueSet = false;
             cueActive = true;
+            double deltaX = event.getX() - cueBall.getxPos();
+            double deltaY = event.getY() - cueBall.getyPos();
+            angle = Math.atan2(deltaY, deltaX);
         });
 
         pane.setOnMouseDragged(event -> {
@@ -169,25 +215,32 @@ public class GameManager implements ResetListener {
 
     private void cfgKeyInput(Pane pane) {
         scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
-            this.onUserDifficultyChange(key.getCode().toString());
+            if (key.getCode() == KeyCode.E || key.getCode() == KeyCode.N || key.getCode() == KeyCode.H)
+                this.onUserDifficultyChange(key.getCode().toString());
+            else if ((loseFlag || winFlag) && key.getCode() == KeyCode.R) {
+                gc.strokeText(null, 0, 0);
+                loseFlag = false;
+                winFlag = false;
+                publishResetEvent();
+            }
         });
     }
 
     private void cfgGameStateUI(Pane pane) {
-        score = new Text(Integer.toString(this.gameState.getScore()));
-        time = new Text(Integer.toString(this.gameState.getTime()));
-        
+        score = new Text("Score: " + Integer.toString(this.gameState.getScore()));
+        time = new Text("Time elapsed: " + Integer.toString(this.gameState.getTime()));
+
         score.setTranslateX(table.getxLength());
         score.setTranslateY(TABLEBUFFER - 20);
 
-        time.setTranslateX(table.getxLength() - 50);
+        time.setTranslateX(table.getxLength() - 100);
         time.setTranslateY(TABLEBUFFER - 20);
 
         pane.getChildren().add(score);
         pane.getChildren().add(time);
     }
 
-    private void cfgButtons(Pane pane) {
+    private void cfgInteractables(Pane pane) {
         // save & restore buttons
         Button save = new Button("save");
         save.setTranslateX(TABLEBUFFER);
@@ -209,6 +262,29 @@ public class GameManager implements ResetListener {
             }
         });
 
+        ComboBox<String> comboBox = new ComboBox<String>();
+        comboBox.setTranslateX(TABLEBUFFER + 150);
+        comboBox.setTranslateY(TABLEBUFFER - 40);
+
+        for (String color : Config.getAvailableColor()) {
+            comboBox.getItems().add(color);
+        }
+
+        comboBox.setPromptText("--Cheat--"); // prompt text
+        // comboBox.getSelectionModel().selectFirst(); // placeholder = 1st option
+
+        comboBox.setOnAction((event) -> {
+            scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
+                String selectedColor = (String) comboBox.getValue();
+
+                if (key.getCode() == KeyCode.C) {
+                    this.cheat(selectedColor);
+                }
+            });
+        });
+
+        // add all these to render queue
+        pane.getChildren().add(comboBox);
         pane.getChildren().add(save);
         pane.getChildren().add(restore);
     }
@@ -223,19 +299,26 @@ public class GameManager implements ResetListener {
      */
     public void tick() {
 
-        this.gameState.incTime();
-        time.setText(Integer.toString(this.gameState.getTime()));
-        score.setText(Integer.toString(this.gameState.getScore()));
+        if (loseFlag || winFlag)
+            return;
 
-        if (gameState.getScore() == balls.size() - 1) {
-            winFlag = true;
+        this.gameState.incTime();
+
+        time.setText("Time: " + Integer.toString(this.gameState.getTime()));
+        score.setText("Score: " + Integer.toString(this.gameState.getScore()));
+
+        winFlag = true;
+        for (Ball ball : balls) {
+            if (ball.isActive() && !ball.isCue()) {
+                winFlag = false;
+            }
         }
 
         for (Ball ball : balls) {
             ball.tick();
 
             if (ball.isCue() && cueSet) {
-                hitBall(ball);
+                hitBall(ball, angle);
             }
 
             double width = table.getxLength();
@@ -246,6 +329,7 @@ public class GameManager implements ResetListener {
                 if (pocket.isInPocket(ball)) {
                     if (ball.isCue()) {
                         publishResetEvent();
+                        loseFlag = true;
                     } else {
                         if (ball.remove()) {
                             ball.publishBallInPocketEvent();
@@ -257,7 +341,8 @@ public class GameManager implements ResetListener {
                                 double deltaY = ball.getyPos() - otherBall.getyPos();
                                 double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
                                 if (otherBall != ball && otherBall.isActive() && distance < 10) {
-                                    ball.forceRemove(); // does not update score
+                                    ball.forceRemove(); // we don't publish inPocket event because this remove is due to
+                                                        // ball collision
                                 }
                             }
                         }
@@ -304,6 +389,20 @@ public class GameManager implements ResetListener {
         }
     }
 
+    /**
+     * Remove all active balls of a given colour.
+     * 
+     * @param colour colour string.
+     */
+    private void cheat(String colour) {
+        for (Ball ball : this.balls) {
+            if (ball.getColour() == Paint.valueOf(colour) && ball.isActive()) {
+                ball.forceRemove();
+                ball.publishBallInPocketEvent();
+            }
+        }
+    }
+
     // -------------- Reset event --------------------
 
     public void initializeListeners() {
@@ -334,16 +433,18 @@ public class GameManager implements ResetListener {
     public void reset() {
         gameState.setScore(0);
         gameState.setTime(0);
+        this.stateTracker.setLastState(null);
     }
 
     // -------------- Swtich difficulty --------------------
     /**
-     * Sets the game difficulty. Also resets game state.
+     * Sets the game difficulty. Also resets game state and clears last saved game state.
      * 
      * @param difficulty difficulty state.
      */
     public void setDifficulty(Difficulty difficulty) {
         this.difficulty = difficulty;
+        this.stateTracker.setLastState(null);
         this.publishResetEvent();
     }
 
@@ -366,14 +467,18 @@ public class GameManager implements ResetListener {
         List<BallState> states = new ArrayList<BallState>();
         for (Ball ball : balls)
             states.add(ball.getState());
-
+        
         return new GameState(this.gameState.getTime(), this.gameState.getScore(), states);
     }
 
     public void restoreState(GameState gameState) {
-        this.gameState = gameState;
+        // restore time, score, ballState
+        this.gameState.setTime(gameState.getTime());
+        this.gameState.setScore(gameState.getScore());
+
         for (int i = 0; i < this.balls.size(); i++) {
-            this.balls.get(i).setState(gameState.getBallStates().get(i));
+            Ball ball = this.balls.get(i);
+            ball.setState(gameState.getBallStates().get(i));
         }
     }
 
@@ -384,23 +489,18 @@ public class GameManager implements ResetListener {
      * 
      * @param ball
      */
-    private void hitBall(Ball ball) {
-        double deltaX = ball.getxPos() - cue.getStartX();
-        double deltaY = ball.getyPos() - cue.getStartY();
-        double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    private void hitBall(Ball ball, double radAngle) {
+        double hitxVel = (cue.getStartX() - cue.getEndX()) * FORCEFACTOR;
+        double hityVel = (cue.getStartY() - cue.getEndY()) * FORCEFACTOR;
+        double hitVel = Math.sqrt(hitxVel * hitxVel + hityVel * hityVel);
 
-        // Check that start of cue is within cue ball
-        if (distance < ball.getRadius()) {
-            // Collide ball with cue
-            double hitxVel = (cue.getStartX() - cue.getEndX()) * FORCEFACTOR;
-            double hityVel = (cue.getStartY() - cue.getEndY()) * FORCEFACTOR;
+        hitxVel = Math.cos(radAngle) * hitVel;
+        hityVel = Math.sin(radAngle) * hitVel;
 
-            ball.setxVel(hitxVel);
-            ball.setyVel(hityVel);
-        }
+        ball.setxVel(hitxVel);
+        ball.setyVel(hityVel);
 
         cueSet = false;
-
     }
 
     /**
@@ -525,5 +625,9 @@ public class GameManager implements ResetListener {
      */
     public void setBalls(ArrayList<Ball> balls) {
         this.balls = balls;
+    }
+
+    public void setCueBall(Ball ball) {
+        this.cueBall = ball;
     }
 }

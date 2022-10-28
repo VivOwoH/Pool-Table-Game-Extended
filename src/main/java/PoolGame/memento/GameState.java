@@ -38,11 +38,12 @@ public class GameState implements BallInPocketListener {
     }
 
     public void incTime() {
-        this.frame++;
         if (this.frame == Config.getFrameRate()) {
             this.time ++;
             this.frame = 0;
+            return;
         }
+        this.frame++;
     }
 
     public int getScore() {
