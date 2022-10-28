@@ -31,22 +31,51 @@ public class Config {
         }
     };
 
+    /**
+     * Returns all possible colors of balls (even such colored balls are not on
+     * screen).
+     * 
+     * @return all colour strings.
+     */
     public static String[] getAvailableColor() {
         return availableColor;
     }
 
+    /**
+     * Returns all the colors of the balls that will perform strategy one when
+     * falling into pockets.
+     * 
+     * @return array of strategy one color strings.
+     */
     public static String[] getStrategyOneColor() {
         return strategyOneColor;
     }
 
+    /**
+     * Returns all the colors of the balls that will perform strategy two when
+     * falling into pockets.
+     * 
+     * @return array of strategy two color strings.
+     */
     public static String[] getStrategyTwoColor() {
         return strategyTwoColor;
     }
 
+    /**
+     * Returns all the colors of the balls that will perform strategy three when
+     * falling into pockets.
+     * 
+     * @return array of strategy three color strings.
+     */
     public static String[] getStrategyThreeColor() {
         return strategyThreeColor;
     }
 
+    /**
+     * Returns the map of each ball's score.
+     * 
+     * @return a map of ball's color to its score.
+     */
     public static HashMap<String, Integer> getScoreMap() {
         return scoreMap;
     }
@@ -78,6 +107,11 @@ public class Config {
         return TABLEEDGE;
     }
 
+    /**
+     * Returns the length of cue stick.
+     * 
+     * @return cue stick length.
+     */
     public static double getCueStickLength() {
         return CUESTICKLENGTH;
     }

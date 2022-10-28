@@ -1,5 +1,6 @@
 package PoolGame.strategy;
 
+/** Holds strategy for balls that only have 1 life */
 public class BallStrategyOne extends PocketStrategy {
     /**
      * Creates a new ball strategy.

@@ -13,6 +13,7 @@ import org.json.simple.parser.ParseException;
 import PoolGame.GameManager;
 import PoolGame.objects.Pocket;
 
+/** Reads in pocket section of JSON. */
 public class PocketReader implements Reader {
     /**
      * Parses the JSON file and builds the balls.
