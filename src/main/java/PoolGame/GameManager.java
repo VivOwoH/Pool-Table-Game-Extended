@@ -167,7 +167,7 @@ public class GameManager implements ResetListener {
             cueActive = false;
             gc.setStroke(Paint.valueOf("white"));
             gc.setFont(new Font("Impact", 40));
-            gc.strokeText("Win and bye. Press Enter to restart.", table.getxLength() / 2 + TABLEBUFFER - 280,
+            gc.strokeText("Win and bye. Press R to restart.", table.getxLength() / 2 + TABLEBUFFER - 250,
                     table.getyLength() / 2 + TABLEBUFFER);
         }
 
@@ -176,7 +176,7 @@ public class GameManager implements ResetListener {
             cueActive = false;
             gc.setStroke(Paint.valueOf("white"));
             gc.setFont(new Font("Impact", 40));
-            gc.strokeText("You lose. Press Enter to restart.", table.getxLength() / 2 + TABLEBUFFER - 250,
+            gc.strokeText("You lose. Press R to restart.", table.getxLength() / 2 + TABLEBUFFER - 220,
                     table.getyLength() / 2 + TABLEBUFFER);
         }
     }
@@ -217,7 +217,7 @@ public class GameManager implements ResetListener {
         scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
             if (key.getCode() == KeyCode.E || key.getCode() == KeyCode.N || key.getCode() == KeyCode.H)
                 this.onUserDifficultyChange(key.getCode().toString());
-            else if ((loseFlag || winFlag) && key.getCode() == KeyCode.ENTER) {
+            else if ((loseFlag || winFlag) && key.getCode() == KeyCode.R) {
                 gc.strokeText(null, 0, 0);
                 loseFlag = false;
                 winFlag = false;
@@ -276,7 +276,7 @@ public class GameManager implements ResetListener {
         comboBox.setOnAction((event) -> {
             scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
                 String selectedColor = (String) comboBox.getValue();
-                
+
                 if (key.getCode() == KeyCode.C) {
                     this.cheat(selectedColor);
                 }
